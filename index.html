@@ -564,44 +564,24 @@ function checkIn(token){
       .value
       .trim();
 
-
   const callbackName =
     "kysCheck_" +
     Date.now() +
     "_" +
-    Math.floor(
-      Math.random()*100000
-    );
-
-
-  const script =
-    document.createElement("script");
-
+    Math.floor(Math.random()*100000);
 
   let finished = false;
-
-
-  window[callbackName] =
-    function(response){
-
-      if(finished) return;
-
-      finished = true;
-
-      cleanup();
-
-      handleResponse(response);
-
-    };
-
+  let script = null;
 
   function cleanup(){
 
     clearTimeout(timeout);
 
-    try{
-      script.remove();
-    }catch(e){}
+    if(script){
+      try{
+        script.remove();
+      }catch(e){}
+    }
 
     try{
       delete window[callbackName];
@@ -609,44 +589,89 @@ function checkIn(token){
 
   }
 
+  window[callbackName] = function(response){
 
-  const timeout =
-    setTimeout(
+    if(finished) return;
 
-      function(){
+    finished = true;
 
-        if(finished) return;
+    cleanup();
 
-        finished = true;
+    handleResponse(response);
 
-        cleanup();
-
-
-        setStatus(
-          "SERVER IS SLOW — PLEASE TRY THIS TICKET AGAIN",
-          "bad"
-        );
-
-
-        busy = false;
-
-
-        document
-          .getElementById("next")
-          .style.display="block";
-
-      },
-
-      15000
-
-    );
-
+  };
 
   /*
-     IMPORTANT:
-     API KEY IS REQUIRED.
-  */
+   * Diagnostic JSONP:
+   * Keep the request alive through Apps Script redirects
+   * and log load/error/timeout in the browser console.
+   */
 
+  script = document.createElement("script");
+  script.async = true;
+
+  script.onload = function(){
+
+    console.log(
+      "KYS JSONP script loaded:",
+      callbackName
+    );
+
+  };
+
+  script.onerror = function(error){
+
+    console.error(
+      "KYS JSONP script error:",
+      error
+    );
+
+    if(finished) return;
+
+    finished = true;
+
+    cleanup();
+
+    setStatus(
+      "SERVER CONNECTION ERROR\n\nPlease try this ticket again.",
+      "bad"
+    );
+
+    busy = false;
+
+    document
+      .getElementById("next")
+      .style.display="block";
+
+  };
+
+  const timeout =
+    setTimeout(function(){
+
+      if(finished) return;
+
+      finished = true;
+
+      console.error(
+        "KYS JSONP TIMEOUT:",
+        callbackName,
+        token
+      );
+
+      cleanup();
+
+      setStatus(
+        "SERVER TIMEOUT\n\nNo check-in response was received.",
+        "bad"
+      );
+
+      busy = false;
+
+      document
+        .getElementById("next")
+        .style.display="block";
+
+    }, 20000);
 
   const url =
     API +
@@ -662,11 +687,16 @@ function checkIn(token){
     "&_=" +
     Date.now();
 
+  console.log(
+    "KYS JSONP REQUEST:",
+    url
+  );
 
   script.src = url;
 
   document.body.appendChild(script);
 }
+
 
 
 /* =====================================================
