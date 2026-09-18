@@ -208,6 +208,7 @@ Keep this page open during entry.
 const API =
 "https://script.google.com/macros/s/AKfycbzZP05yKEeGXzcKlZtbLlEHYGqz5HJMHJoeLvb6vTg2t05eOWyL6q-U9dasTD7WSzztlw/exec";
 
+
 const KEY =
 "KOLbmD4g1LoiBKe6ooZK7LR_OmyBICce";
 
@@ -641,49 +642,28 @@ function checkIn(token){
       .value
       .trim();
 
-
   const callbackName =
     "kysCheck_" +
     Date.now() +
     "_" +
-    Math.floor(
-      Math.random()*100000
-    );
-
+    Math.floor(Math.random() * 100000);
 
   const script =
     document.createElement("script");
 
-
   let finished = false;
-
-
-  window[callbackName] =
-    function(response){
-
-      if(finished) return;
-
-
-      finished = true;
-
-
-      cleanup();
-
-
-      handleResponse(response);
-
-    };
-
+  let timeout = null;
 
   function cleanup(){
 
-    clearTimeout(timeout);
-
+    if(timeout){
+      clearTimeout(timeout);
+      timeout = null;
+    }
 
     try{
       script.remove();
     }catch(e){}
-
 
     try{
       delete window[callbackName];
@@ -691,45 +671,75 @@ function checkIn(token){
 
   }
 
+  function finishWithResponse(response){
 
-  const timeout =
+    if(finished) return;
+
+    finished = true;
+
+    cleanup();
+
+    handleResponse(response);
+
+  }
+
+  window[callbackName] =
+    function(response){
+      finishWithResponse(response);
+    };
+
+
+  script.onerror = function(){
+
+    if(finished) return;
+
+    finished = true;
+
+    cleanup();
+
+    setStatus(
+      "SERVER CONNECTION ERROR\n\nPlease scan this ticket again.",
+      "bad"
+    );
+
+    busy = false;
+
+    document
+      .getElementById("next")
+      .style.display = "block";
+
+  };
+
+
+  /*
+   * Allow enough time for an Apps Script cold start.
+   * A response received before this is handled immediately.
+   */
+
+  timeout =
     setTimeout(
-
       function(){
 
         if(finished) return;
 
-
         finished = true;
-
 
         cleanup();
 
-
         setStatus(
-          "SERVER IS SLOW — PLEASE TRY THIS TICKET AGAIN",
+          "SERVER TIMEOUT\n\nPlease scan this ticket again.",
           "bad"
         );
 
-
         busy = false;
-
 
         document
           .getElementById("next")
-          .style.display="block";
+          .style.display = "block";
 
       },
-
-      15000
-
+      30000
     );
-
-
-  /*
-    IMPORTANT:
-    API KEY IS REQUIRED.
-  */
 
 
   const url =
@@ -747,12 +757,14 @@ function checkIn(token){
     Date.now();
 
 
+  script.async = true;
   script.src = url;
-
 
   document.body.appendChild(script);
 
 }
+
+
 
 
 /* =====================================================
