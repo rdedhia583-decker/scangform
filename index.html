@@ -36,7 +36,7 @@
         
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; color: #4b5563; }
-        input[type="text"], select {
+        input[type="text"] {
             width: 100%; padding: 10px; border: 1px solid #d1d5db;
             border-radius: 8px; font-size: 14px; box-sizing: border-box;
         }
@@ -85,15 +85,10 @@
         <input type="text" id="scriptUrl" placeholder="Paste your deployment URL here..." onchange="saveUrl()">
     </div>
 
-    <!-- Camera Controls -->
-    <div class="form-group">
-        <label>Select Scanner Camera:</label>
-        <select id="cameraSelect"><option value="">Loading cameras...</option></select>
-    </div>
-
+    <!-- Interactive Buttons -->
     <div class="btn-group">
-        <button class="btn-start" id="startBtn" onclick="startScanning()">▶️ Start Scanner</button>
-        <button class="btn-stop" id="stopBtn" onclick="stopScanning()" disabled>⏸️ Stop Scanner</button>
+        <button class="btn-start" id="startBtn" onclick="startScanning()">▶️ Open Camera</button>
+        <button class="btn-stop" id="stopBtn" onclick="stopScanning()" disabled>⏸️ Close Camera</button>
     </div>
 
     <!-- Live Scanner Viewport -->
@@ -110,37 +105,13 @@
     let html5QrCode;
     let isProcessing = false;
 
-    // Page Load hote hi data restore karein aur cameras list karein
+    // Local storage logic
     window.addEventListener('DOMContentLoaded', () => {
-        // Automatically local memory se URL recover karna
         if(localStorage.getItem('savedScriptUrl')) {
             document.getElementById('scriptUrl').value = localStorage.getItem('savedScriptUrl');
         }
-
-        // Camera devices access karna aur dropdown me daalna
-        Html5Qrcode.getCameras().then(devices => {
-            const select = document.getElementById('cameraSelect');
-            select.innerHTML = '';
-            if (devices && devices.length) {
-                devices.forEach((device, index) => {
-                    const offset = devices.length > 1 ? index : 0;
-                    const label = device.label || `Camera ${index + 1}`;
-                    const option = document.createElement('option');
-                    option.value = device.id;
-                    option.text = label;
-                    // Back/Rear camera ko defaults banana phones ke liye
-                    if(label.toLowerCase().includes('back') || label.toLowerCase().includes('environment')) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
-                });
-            } else {
-                select.innerHTML = '<option value="">No cameras found</option>';
-            }
-        }).catch(err => {
-            console.error("Camera permission denied", err);
-            document.getElementById('cameraSelect').innerHTML = '<option value="">Permission Denied</option>';
-        });
+        // Nayi instance setup karna
+        html5QrCode = new Html5Qrcode("reader");
     });
 
     function saveUrl() {
@@ -148,37 +119,30 @@
         localStorage.setItem('savedScriptUrl', url);
     }
 
-    // Start Scanning Button Action
+    // Direct Camera access calling using Facing Mode
     function startScanning() {
-        const cameraId = document.getElementById('cameraSelect').value;
         const webAppUrl = document.getElementById('scriptUrl').value.trim();
 
         if (!webAppUrl) {
             alert("Pehle apna Google Apps Script Web App URL daalein!");
             return;
         }
-        if (!cameraId) {
-            alert("Koi valid camera select karein!");
-            return;
-        }
 
-        html5QrCode = new Html5Qrcode("reader");
-        
         document.getElementById('startBtn').disabled = true;
         document.getElementById('stopBtn').disabled = false;
         hideFlash();
 
+        // Dropdown ke bina seedhe mobile ka main back camera select karna
         html5QrCode.start(
-            cameraId, 
-            { fps: 12, qrbox: { width: 250, height: 250 } },
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: { width: 250, height: 250 } },
             onScanSuccess
         ).catch(err => {
-            alert("Camera start karne me error aaya: " + err);
+            alert("Camera initialization failed: " + err);
             stopScanning();
         });
     }
 
-    // Stop Scanning Button Action
     function stopScanning() {
         if (html5QrCode && html5QrCode.isScanning) {
             html5QrCode.stop().then(() => {
@@ -192,7 +156,6 @@
         }
     }
 
-    // QR scan hone par logic execute hoga
     function onScanSuccess(decodedText) {
         if (isProcessing) return; 
         isProcessing = true;
@@ -201,7 +164,7 @@
         triggerAlertSound('scan');
         showFlash('status-scanning', '🔄 VERIFYING TICKET...', `ID: ${decodedText}`);
 
-        // Backend Sheet update connection
+        // Backend Sync
         fetch(`${webAppUrl}?qrData=${encodeURIComponent(decodedText)}`)
             .then(res => res.json())
             .then(data => {
@@ -216,7 +179,6 @@
                     showFlash('status-error', '⚠️ INVALID TICKET', `Data: ${decodedText}`);
                 }
                 
-                // 3 Seconds ka lock lagaya hai taaki ek hi QR lagatar 5 baar scan na ho jaye
                 setTimeout(() => {
                     isProcessing = false;
                     showFlash('status-scanning', 'Ready for Next Ticket...', 'Point camera to QR');
@@ -224,7 +186,7 @@
             })
             .catch(err => {
                 triggerAlertSound('error');
-                showFlash('status-error', '⚠️ NETWORK / CORS ERROR', 'Check script permissions or internet.');
+                showFlash('status-error', '⚠️ NETWORK / CORS ERROR', 'Check script deployment permissions.');
                 setTimeout(() => { isProcessing = false; }, 3500);
             });
     }
@@ -241,7 +203,6 @@
         document.getElementById('flashCard').style.display = 'none';
     }
 
-    // Audio beep system helper (Bina kisi extra sound file ke browser frequency sound generate karega)
     function triggerAlertSound(type) {
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -251,4 +212,22 @@
             gain.connect(ctx.destination);
 
             if (type === 'scan') {
-osc.frequency.setValueAtTime(800, ctx.currentTime);gain.gain.setValueAtTime(0.1, ctx.currentTime);osc.start(); osc.stop(ctx.currentTime + 0.05);} else if (type === 'allowed') {osc.frequency.setValueAtTime(1200, ctx.currentTime);gain.gain.setValueAtTime(0.2, ctx.currentTime);osc.start(); osc.stop(ctx.currentTime + 0.2);} else if (type === 'already' || type === 'error') {osc.type = 'sawtooth';osc.frequency.setValueAtTime(150, ctx.currentTime);gain.gain.setValueAtTime(0.3, ctx.currentTime);osc.start(); osc.stop(ctx.currentTime + 0.4);}} catch(e) { console.log('Audio contextual block bypassed'); }}
+                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.start(); osc.stop(ctx.currentTime + 0.05);
+            } else if (type === 'allowed') {
+                osc.frequency.setValueAtTime(1200, ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                osc.start(); osc.stop(ctx.currentTime + 0.2);
+            } else if (type === 'already' || type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, ctx.currentTime);
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                osc.start(); osc.stop(ctx.currentTime + 0.4);
+            }
+        } catch(e) {}
+    }
+</script>
+
+</body>
+</html>
