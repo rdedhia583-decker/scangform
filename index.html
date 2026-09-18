@@ -181,7 +181,7 @@ const API =
 "https://script.google.com/macros/s/AKfycbzZP05yKEeGXzcKlZtbLlEHYGqz5HJMHJoeLvb6vTg2t05eOWyL6q-U9dasTD7WSzztlw/exec";
 
 const KEY =
-"KOLbmD4g1LoiBKe6ooZK7LR_OmyBICce";
+"14GOL_AcDEybW6hveqqFogQn4QbN";
 
 
 /* =====================================================
@@ -475,9 +475,12 @@ function extractToken(value){
   if(!value) return "";
 
 
-  /* ================================================
-     1. URL QR FORMAT
-  ================================================= */
+  /*
+     QR normally contains:
+
+     https://.../exec?page=ticket&token=XXXXX_T1
+  */
+
 
   try{
 
@@ -509,46 +512,13 @@ function extractToken(value){
   }
 
 
-  /* ================================================
-     2. NEW KYS GARBA QR FORMAT
+  /*
+     Also support direct token:
 
-     Example:
+     XXXXX_T1
+  */
 
-     KYS GARBA NIGHT 2026
-     Token: KYS-GN26-00021
-     Name: Rahul
-     Mobile: 9876543210
-     Ticket: 1/3
-  ================================================= */
-
-  const match =
-    value.match(
-      /Token\s*:\s*([A-Za-z0-9_-]+)/i
-    );
-
-
-  if(match && match[1]){
-
-    return match[1].trim();
-
-  }
-
-
-  /* ================================================
-     3. DIRECT TOKEN
-  ================================================= */
-
-  if(
-    /^KYS-GN26-\d+$/i.test(value)
-  ){
-
-    return value.trim();
-
-  }
-
-
-  return "";
-
+  return value;
 }
 
 
@@ -564,24 +534,44 @@ function checkIn(token){
       .value
       .trim();
 
+
   const callbackName =
     "kysCheck_" +
     Date.now() +
     "_" +
-    Math.floor(Math.random()*100000);
+    Math.floor(
+      Math.random()*100000
+    );
+
+
+  const script =
+    document.createElement("script");
+
 
   let finished = false;
-  let script = null;
+
+
+  window[callbackName] =
+    function(response){
+
+      if(finished) return;
+
+      finished = true;
+
+      cleanup();
+
+      handleResponse(response);
+
+    };
+
 
   function cleanup(){
 
     clearTimeout(timeout);
 
-    if(script){
-      try{
-        script.remove();
-      }catch(e){}
-    }
+    try{
+      script.remove();
+    }catch(e){}
 
     try{
       delete window[callbackName];
@@ -589,89 +579,44 @@ function checkIn(token){
 
   }
 
-  window[callbackName] = function(response){
-
-    if(finished) return;
-
-    finished = true;
-
-    cleanup();
-
-    handleResponse(response);
-
-  };
-
-  /*
-   * Diagnostic JSONP:
-   * Keep the request alive through Apps Script redirects
-   * and log load/error/timeout in the browser console.
-   */
-
-  script = document.createElement("script");
-  script.async = true;
-
-  script.onload = function(){
-
-    console.log(
-      "KYS JSONP script loaded:",
-      callbackName
-    );
-
-  };
-
-  script.onerror = function(error){
-
-    console.error(
-      "KYS JSONP script error:",
-      error
-    );
-
-    if(finished) return;
-
-    finished = true;
-
-    cleanup();
-
-    setStatus(
-      "SERVER CONNECTION ERROR\n\nPlease try this ticket again.",
-      "bad"
-    );
-
-    busy = false;
-
-    document
-      .getElementById("next")
-      .style.display="block";
-
-  };
 
   const timeout =
-    setTimeout(function(){
+    setTimeout(
 
-      if(finished) return;
+      function(){
 
-      finished = true;
+        if(finished) return;
 
-      console.error(
-        "KYS JSONP TIMEOUT:",
-        callbackName,
-        token
-      );
+        finished = true;
 
-      cleanup();
+        cleanup();
 
-      setStatus(
-        "SERVER TIMEOUT\n\nNo check-in response was received.",
-        "bad"
-      );
 
-      busy = false;
+        setStatus(
+          "SERVER IS SLOW — PLEASE TRY THIS TICKET AGAIN",
+          "bad"
+        );
 
-      document
-        .getElementById("next")
-        .style.display="block";
 
-    }, 20000);
+        busy = false;
+
+
+        document
+          .getElementById("next")
+          .style.display="block";
+
+      },
+
+      15000
+
+    );
+
+
+  /*
+     IMPORTANT:
+     API KEY IS REQUIRED.
+  */
+
 
   const url =
     API +
@@ -687,16 +632,11 @@ function checkIn(token){
     "&_=" +
     Date.now();
 
-  console.log(
-    "KYS JSONP REQUEST:",
-    url
-  );
 
   script.src = url;
 
   document.body.appendChild(script);
 }
-
 
 
 /* =====================================================
