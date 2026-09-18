@@ -1,22 +1,15 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 
 <title>Kutch Yuvak Sangh - Pre Navratri Garba Night</title>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <style>
-
-*{
-  box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
   margin:0;
@@ -125,24 +118,16 @@ button{
   font-size:14px;
   margin-top:22px;
 }
-
 </style>
-
 </head>
-
 
 <body>
 
 <div class="wrap">
-
 <div class="card">
 
 <h1>Kutch Yuvak Sangh</h1>
-
-<div class="sub">
-Pre Navratri Garba Night • QR Check-In
-</div>
-
+<div class="sub">Pre Navratri Garba Night • QR Check-In</div>
 
 <label>VOLUNTEER NAME</label>
 
@@ -152,14 +137,9 @@ Pre Navratri Garba Night • QR Check-In
   autocomplete="off"
 >
 
-
-<button
-  id="start"
-  onclick="startScanner()"
->
+<button id="start" onclick="startScanner()">
 START SCANNER
 </button>
-
 
 <button
   id="stop"
@@ -169,14 +149,11 @@ START SCANNER
 STOP SCANNER
 </button>
 
-
 <div id="reader"></div>
-
 
 <div id="status">
 Ready to scan
 </div>
-
 
 <button
   id="next"
@@ -186,28 +163,22 @@ Ready to scan
 SCAN NEXT TICKET
 </button>
 
-
 <div class="small">
 Keep this page open during entry.
 </div>
 
-
 </div>
-
 </div>
 
 
 <script>
 
-
 /* =====================================================
    CONFIG
 ===================================================== */
 
-
 const API =
 "https://script.google.com/macros/s/AKfycbzZP05yKEeGXzcKlZtbLlEHYGqz5HJMHJoeLvb6vTg2t05eOWyL6q-U9dasTD7WSzztlw/exec";
-
 
 const KEY =
 "KOLbmD4g1LoiBKe6ooZK7LR_OmyBICce";
@@ -217,13 +188,9 @@ const KEY =
    STATE
 ===================================================== */
 
-
 let scanner = null;
-
 let busy = false;
-
 let lastToken = "";
-
 let lastAt = 0;
 
 
@@ -231,16 +198,13 @@ let lastAt = 0;
    STATUS
 ===================================================== */
 
-
 function setStatus(text, cls=""){
 
   const el =
     document.getElementById("status");
 
   el.className = cls;
-
   el.textContent = text;
-
 }
 
 
@@ -248,18 +212,15 @@ function setStatus(text, cls=""){
    START SCANNER
 ===================================================== */
 
-
 async function startScanner(){
 
   if(scanner) return;
-
 
   const volunteer =
     document
       .getElementById("volunteer")
       .value
       .trim();
-
 
   if(!volunteer){
 
@@ -269,19 +230,15 @@ async function startScanner(){
     );
 
     return;
-
   }
-
 
   scanner =
     new Html5Qrcode("reader");
-
 
   setStatus(
     "Starting camera...",
     "wait"
   );
-
 
   const config = {
 
@@ -293,7 +250,6 @@ async function startScanner(){
     },
 
     rememberLastUsedCamera:true
-
   };
 
 
@@ -335,12 +291,10 @@ async function startScanner(){
 
     console.error(error);
 
-
     try{
 
       const cameras =
         await Html5Qrcode.getCameras();
-
 
       if(!cameras.length)
         throw new Error("No camera");
@@ -398,7 +352,6 @@ async function startScanner(){
    STOP
 ===================================================== */
 
-
 async function stopScanner(){
 
   if(scanner){
@@ -407,16 +360,13 @@ async function stopScanner(){
       await scanner.stop();
     }catch(e){}
 
-
     try{
       scanner.clear();
     }catch(e){}
 
   }
 
-
   scanner = null;
-
   busy = false;
 
 
@@ -433,7 +383,6 @@ async function stopScanner(){
   setStatus(
     "Scanner stopped"
   );
-
 }
 
 
@@ -441,19 +390,15 @@ async function stopScanner(){
    QR SCANNED
 ===================================================== */
 
-
 function onScan(decodedText){
 
   if(busy) return;
-
 
   const raw =
     String(decodedText || "")
     .trim();
 
-
   if(!raw) return;
-
 
   const now = Date.now();
 
@@ -469,14 +414,8 @@ function onScan(decodedText){
 
 
   lastToken = raw;
-
   lastAt = now;
 
-
-  /*
-    Extract the individual ticket token
-    from the new QR format.
-  */
 
   const token =
     extractToken(raw);
@@ -520,7 +459,6 @@ function onScan(decodedText){
 
 
   checkIn(token);
-
 }
 
 
@@ -528,25 +466,18 @@ function onScan(decodedText){
    EXTRACT TOKEN FROM QR
 ===================================================== */
 
-
 function extractToken(value){
 
   value =
     String(value || "")
     .trim();
 
-
   if(!value) return "";
 
 
   /* ================================================
      1. URL QR FORMAT
-
-     Example:
-
-     https://.../exec?page=ticket&token=KYS-GN26-00021
   ================================================= */
-
 
   try{
 
@@ -558,10 +489,8 @@ function extractToken(value){
       const url =
         new URL(value);
 
-
       const token =
         url.searchParams.get("token");
-
 
       if(token)
         return token.trim();
@@ -592,7 +521,6 @@ function extractToken(value){
      Ticket: 1/3
   ================================================= */
 
-
   const match =
     value.match(
       /Token\s*:\s*([A-Za-z0-9_-]+)/i
@@ -608,12 +536,7 @@ function extractToken(value){
 
   /* ================================================
      3. DIRECT TOKEN
-
-     Example:
-
-     KYS-GN26-00021
   ================================================= */
-
 
   if(
     /^KYS-GN26-\d+$/i.test(value)
@@ -633,7 +556,6 @@ function extractToken(value){
    CHECK-IN VIA JSONP
 ===================================================== */
 
-
 function checkIn(token){
 
   const volunteer =
@@ -642,16 +564,35 @@ function checkIn(token){
       .value
       .trim();
 
+
   const callbackName =
     "kysCheck_" +
     Date.now() +
     "_" +
-    Math.floor(Math.random() * 100000);
+    Math.floor(
+      Math.random()*100000
+    );
+
 
   const script =
     document.createElement("script");
 
+
   let finished = false;
+
+
+  window[callbackName] =
+    function(response){
+
+      if(finished) return;
+
+      finished = true;
+
+      cleanup();
+
+      handleResponse(response);
+
+    };
 
 
   function cleanup(){
@@ -669,22 +610,9 @@ function checkIn(token){
   }
 
 
-  window[callbackName] =
-    function(response){
-
-      if(finished) return;
-
-      finished = true;
-
-      cleanup();
-
-      handleResponse(response);
-
-    };
-
-
   const timeout =
     setTimeout(
+
       function(){
 
         if(finished) return;
@@ -693,20 +621,31 @@ function checkIn(token){
 
         cleanup();
 
+
         setStatus(
           "SERVER IS SLOW — PLEASE TRY THIS TICKET AGAIN",
           "bad"
         );
 
+
         busy = false;
+
 
         document
           .getElementById("next")
-          .style.display = "block";
+          .style.display="block";
 
       },
-      30000
+
+      15000
+
     );
+
+
+  /*
+     IMPORTANT:
+     API KEY IS REQUIRED.
+  */
 
 
   const url =
@@ -727,13 +666,12 @@ function checkIn(token){
   script.src = url;
 
   document.body.appendChild(script);
-
 }
-  
+
+
 /* =====================================================
    RESPONSE
 ===================================================== */
-
 
 function handleResponse(data){
 
@@ -747,7 +685,6 @@ function handleResponse(data){
     finishScan();
 
     return;
-
   }
 
 
@@ -759,6 +696,7 @@ function handleResponse(data){
   /* =================================================
      SUCCESS — FIRST SCAN
 
+     IMPORTANT:
      Backend first scan returns:
 
      ok:true
@@ -807,7 +745,6 @@ function handleResponse(data){
     finishScan();
 
     return;
-
   }
 
 
@@ -840,7 +777,6 @@ function handleResponse(data){
     finishScan();
 
     return;
-
   }
 
 
@@ -865,7 +801,6 @@ function handleResponse(data){
     finishScan();
 
     return;
-
   }
 
 
@@ -890,7 +825,6 @@ function handleResponse(data){
     finishScan();
 
     return;
-
   }
 
 
@@ -914,7 +848,6 @@ function handleResponse(data){
     finishScan();
 
     return;
-
   }
 
 
@@ -934,14 +867,12 @@ function handleResponse(data){
 
 
   finishScan();
-
 }
 
 
 /* =====================================================
    FINISH
 ===================================================== */
-
 
 function finishScan(){
 
@@ -951,7 +882,6 @@ function finishScan(){
   document
     .getElementById("next")
     .style.display="block";
-
 }
 
 
@@ -959,18 +889,16 @@ function finishScan(){
    NEXT TICKET
 ===================================================== */
 
-
 function resetForNext(){
 
   busy = false;
 
   lastToken = "";
-
   lastAt = 0;
 
 
   /*
-    RESUME CAMERA FOR NEXT QR
+     RESUME CAMERA FOR NEXT QR
   */
 
   if(scanner){
@@ -990,12 +918,9 @@ function resetForNext(){
   setStatus(
     "READY — Scan next QR"
   );
-
 }
-
 
 </script>
 
 </body>
-
 </html>
