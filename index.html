@@ -3,162 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event QR Check-In Scanner</title>
-    <!-- Html5Qrcode Library for Camera Scanning -->
+    <title>Event Day Check-In Panel</title>
+    <!-- Html5Qrcode Core Library -->
     <script src="https://cloudflare.com"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1f2937;
         }
-        .container {
-            max-width: 500px;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 15px;
+            color: var(--dark);
+            display: flex;
+            justify-content: center;
+        }
+        .panel {
+            max-width: 480px;
             width: 100%;
             background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        h2 { color: #333; margin-bottom: 20px; }
-        .config-box {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
             box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 14px;
         }
-        #reader {
-            width: 100%;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 2px solid #ddd;
-        }
-        /* Status Flash Card Styling */
-        #status-card {
-            margin-top: 20px;
-            padding: 20px;
-            border-radius: 8px;
-            font-size: 20px;
-            font-weight: bold;
-            display: none;
-            transition: all 0.3s ease;
-        }
-        .allowed { background-color: #2ec4b6; color: white; border: 2px solid #0f9f90; }
-        .already-scanned { background-color: #e71d36; color: white; border: 2px solid #b71224; }
-        .not-found { background-color: #ff9f1c; color: white; border: 2px solid #d47a00; }
-        .scanning { background-color: #e0e0e0; color: #666; }
+        h2 { text-align: center; margin-top: 0; font-size: 22px; color: var(--primary); }
         
-        #ticket-details {
-            margin-top: 10px;
-            font-size: 14px;
-            font-weight: normal;
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; color: #4b5563; }
+        input[type="text"], select {
+            width: 100%; padding: 10px; border: 1px solid #d1d5db;
+            border-radius: 8px; font-size: 14px; box-sizing: border-box;
+        }
+        
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        button {
+            flex: 1; padding: 12px; font-size: 14px; font-weight: 600;
+            border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-start { background-color: var(--success); color: white; }
+        .btn-stop { background-color: var(--danger); color: white; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #reader {
+            width: 100%; border-radius: 12px; overflow: hidden;
+            border: 2px dashed #cbd5e1; background: #fafafa;
+        }
+
+        /* Result Flash Cards */
+        .flash-card {
+            margin-top: 20px; padding: 25px 15px; border-radius: 12px;
+            text-align: center; font-size: 22px; font-weight: 800;
+            display: none; animation: pulse 0.5s infinite alternate;
+        }
+        .status-scanning { background-color: #e5e7eb; color: #4b5563; }
+        .status-allowed { background-color: #d1fae5; color: #065f46; border: 3px solid var(--success); }
+        .status-already { background-color: #fee2e2; color: #991b1b; border: 3px solid var(--danger); }
+        .status-error { background-color: #fef3c7; color: #92400e; border: 3px solid var(--warning); }
+        
+        .ticket-id { font-size: 13px; font-weight: 400; margin-top: 8px; display: block; opacity: 0.8; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.02); }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>🎟️ Event Ticket Scanner</h2>
+<div class="panel">
+    <h2>🎟️ Counter Check-In Panel</h2>
     
-    <!-- Apps Script URL Configuration -->
-    <div class="config-box">
-        <label style="font-weight: 600; display:block; margin-bottom:5px;">Google Apps Script Web App URL:</label>
-        <input type="text" id="scriptUrl" placeholder="https://google.com" />
+    <!-- Config Section (Saved automatically) -->
+    <div class="form-group">
+        <label>Google Apps Script Web App URL:</label>
+        <input type="text" id="scriptUrl" placeholder="Paste your deployment URL here..." onchange="saveUrl()">
     </div>
 
-    <!-- Scanner Camera Viewport -->
+    <!-- Camera Controls -->
+    <div class="form-group">
+        <label>Select Scanner Camera:</label>
+        <select id="cameraSelect"><option value="">Loading cameras...</option></select>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-start" id="startBtn" onclick="startScanning()">▶️ Start Scanner</button>
+        <button class="btn-stop" id="stopBtn" onclick="stopScanning()" disabled>⏸️ Stop Scanner</button>
+    </div>
+
+    <!-- Live Scanner Viewport -->
     <div id="reader"></div>
 
-    <!-- Flash Result Card -->
-    <div id="status-card">
-        <div id="status-message">Ready to Scan</div>
-        <div id="ticket-details"></div>
+    <!-- Dynamic Status Flash Panels -->
+    <div id="flashCard" class="flash-card">
+        <span id="flashMessage">Ready</span>
+        <span id="ticketData" class="ticket-id"></span>
     </div>
 </div>
 
 <script>
-    let html5QrcodeScanner;
-    let isProcessing = false; // Multi-scanning ko rokne ke liye loop breaker
+    let html5QrCode;
+    let isProcessing = false;
 
-    function initScanner() {
-        html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: { width: 250, height: 250 } }
-        );
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    // Page Load hote hi data restore karein aur cameras list karein
+    window.addEventListener('DOMContentLoaded', () => {
+        // Automatically local memory se URL recover karna
+        if(localStorage.getItem('savedScriptUrl')) {
+            document.getElementById('scriptUrl').value = localStorage.getItem('savedScriptUrl');
+        }
+
+        // Camera devices access karna aur dropdown me daalna
+        Html5Qrcode.getCameras().then(devices => {
+            const select = document.getElementById('cameraSelect');
+            select.innerHTML = '';
+            if (devices && devices.length) {
+                devices.forEach((device, index) => {
+                    const offset = devices.length > 1 ? index : 0;
+                    const label = device.label || `Camera ${index + 1}`;
+                    const option = document.createElement('option');
+                    option.value = device.id;
+                    option.text = label;
+                    // Back/Rear camera ko defaults banana phones ke liye
+                    if(label.toLowerCase().includes('back') || label.toLowerCase().includes('environment')) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            } else {
+                select.innerHTML = '<option value="">No cameras found</option>';
+            }
+        }).catch(err => {
+            console.error("Camera permission denied", err);
+            document.getElementById('cameraSelect').innerHTML = '<option value="">Permission Denied</option>';
+        });
+    });
+
+    function saveUrl() {
+        const url = document.getElementById('scriptUrl').value.trim();
+        localStorage.setItem('savedScriptUrl', url);
     }
 
-    // Jab QR Code successfully scan hoga
-    function onScanSuccess(decodedText, decodedResult) {
-        if (isProcessing) return; // Agar pehle wala ticket abhi verify ho raha h to ruko
-        
+    // Start Scanning Button Action
+    function startScanning() {
+        const cameraId = document.getElementById('cameraSelect').value;
         const webAppUrl = document.getElementById('scriptUrl').value.trim();
+
         if (!webAppUrl) {
-            alert("Pehle apna Google Apps Script Web App URL upar box me daalein!");
+            alert("Pehle apna Google Apps Script Web App URL daalein!");
+            return;
+        }
+        if (!cameraId) {
+            alert("Koi valid camera select karein!");
             return;
         }
 
-        isProcessing = true;
-        showStatus('scanning', 'Verifying Ticket...', 'Checking backend database...');
+        html5QrCode = new Html5Qrcode("reader");
+        
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
+        hideFlash();
 
-        // Google Apps Script Web App ko request bhejna (CORS handler ke saath)
+        html5QrCode.start(
+            cameraId, 
+            { fps: 12, qrbox: { width: 250, height: 250 } },
+            onScanSuccess
+        ).catch(err => {
+            alert("Camera start karne me error aaya: " + err);
+            stopScanning();
+        });
+    }
+
+    // Stop Scanning Button Action
+    function stopScanning() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                hideFlash();
+            });
+        } else {
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        }
+    }
+
+    // QR scan hone par logic execute hoga
+    function onScanSuccess(decodedText) {
+        if (isProcessing) return; 
+        isProcessing = true;
+
+        const webAppUrl = document.getElementById('scriptUrl').value.trim();
+        triggerAlertSound('scan');
+        showFlash('status-scanning', '🔄 VERIFYING TICKET...', `ID: ${decodedText}`);
+
+        // Backend Sheet update connection
         fetch(`${webAppUrl}?qrData=${encodeURIComponent(decodedText)}`)
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                // Flash message conditions
                 if (data.status === "ALLOWED") {
-                    showStatus('allowed', '✅ CHECK-IN ALLOWED', `Ticket ID: ${decodedText}`);
+                    triggerAlertSound('allowed');
+                    showFlash('status-allowed', '✅ CHECK-IN ALLOWED', `Ticket ID: ${decodedText}`);
                 } else if (data.status === "ALREADY_SCAN") {
-                    showStatus('already-scanned', '❌ ALREADY CHECKED IN!', `Scanned Again: ${decodedText}`);
+                    triggerAlertSound('already');
+                    showFlash('status-already', '❌ ALREADY CHECKED IN!', `Scanned Again: ${decodedText}`);
                 } else {
-                    showStatus('not-found', '⚠️ INVALID TICKET / NOT FOUND', `Data: ${decodedText}`);
+                    triggerAlertSound('error');
+                    showFlash('status-error', '⚠️ INVALID TICKET', `Data: ${decodedText}`);
                 }
                 
-                // 3 seconds baad scanner ko agla ticket scan karne ke liye ready karna
+                // 3 Seconds ka lock lagaya hai taaki ek hi QR lagatar 5 baar scan na ho jaye
                 setTimeout(() => {
                     isProcessing = false;
-                    resetStatus();
-                }, 3000);
+                    showFlash('status-scanning', 'Ready for Next Ticket...', 'Point camera to QR');
+                }, 3500);
             })
-            .catch(error => {
-                console.error("Error verifying ticket:", error);
-                showStatus('not-found', '⚠️ NETWORK ERROR', 'Check console or Apps Script deployment permissions.');
-                setTimeout(() => { isProcessing = false; }, 3000);
+            .catch(err => {
+                triggerAlertSound('error');
+                showFlash('status-error', '⚠️ NETWORK / CORS ERROR', 'Check script permissions or internet.');
+                setTimeout(() => { isProcessing = false; }, 3500);
             });
     }
 
-    function onScanFailure(error) {
-        // Har frame fail hone par handle karne ki zarurat nahi hai (Library defaults it)
-    }
-
-    function showStatus(className, message, details) {
-        const card = document.getElementById('status-card');
-        const msgDiv = document.getElementById('status-message');
-        const detailsDiv = document.getElementById('ticket-details');
-        
-        card.className = className;
+    function showFlash(className, msg, details) {
+        const card = document.getElementById('flashCard');
+        card.className = `flash-card ${className}`;
         card.style.display = 'block';
-        msgDiv.innerText = message;
-        detailsDiv.innerText = details;
+        document.getElementById('flashMessage').innerText = msg;
+        document.getElementById('ticketData').innerText = details;
     }
 
-    function resetStatus() {
-        document.getElementById('status-card').style.display = 'none';
+    function hideFlash() {
+        document.getElementById('flashCard').style.display = 'none';
     }
 
-    // Page load hote hi scanner load karein
-    window.addEventListener('DOMContentLoaded', initScanner);
-</script>
+    // Audio beep system helper (Bina kisi extra sound file ke browser frequency sound generate karega)
+    function triggerAlertSound(type) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
 
-</body>
-</html>
+            if (type === 'scan') {
+osc.frequency.setValueAtTime(800, ctx.currentTime);gain.gain.setValueAtTime(0.1, ctx.currentTime);osc.start(); osc.stop(ctx.currentTime + 0.05);} else if (type === 'allowed') {osc.frequency.setValueAtTime(1200, ctx.currentTime);gain.gain.setValueAtTime(0.2, ctx.currentTime);osc.start(); osc.stop(ctx.currentTime + 0.2);} else if (type === 'already' || type === 'error') {osc.type = 'sawtooth';osc.frequency.setValueAtTime(150, ctx.currentTime);gain.gain.setValueAtTime(0.3, ctx.currentTime);osc.start(); osc.stop(ctx.currentTime + 0.4);}} catch(e) { console.log('Audio contextual block bypassed'); }}
