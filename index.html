@@ -652,14 +652,11 @@ function checkIn(token){
     document.createElement("script");
 
   let finished = false;
-  let timeout = null;
+
 
   function cleanup(){
 
-    if(timeout){
-      clearTimeout(timeout);
-      timeout = null;
-    }
+    clearTimeout(timeout);
 
     try{
       script.remove();
@@ -671,52 +668,22 @@ function checkIn(token){
 
   }
 
-  function finishWithResponse(response){
-
-    if(finished) return;
-
-    finished = true;
-
-    cleanup();
-
-    handleResponse(response);
-
-  }
 
   window[callbackName] =
     function(response){
-      finishWithResponse(response);
+
+      if(finished) return;
+
+      finished = true;
+
+      cleanup();
+
+      handleResponse(response);
+
     };
 
 
-  script.onerror = function(){
-
-    if(finished) return;
-
-    finished = true;
-
-    cleanup();
-
-    setStatus(
-      "SERVER CONNECTION ERROR\n\nPlease scan this ticket again.",
-      "bad"
-    );
-
-    busy = false;
-
-    document
-      .getElementById("next")
-      .style.display = "block";
-
-  };
-
-
-  /*
-   * Allow enough time for an Apps Script cold start.
-   * A response received before this is handled immediately.
-   */
-
-  timeout =
+  const timeout =
     setTimeout(
       function(){
 
@@ -727,7 +694,7 @@ function checkIn(token){
         cleanup();
 
         setStatus(
-          "SERVER TIMEOUT\n\nPlease scan this ticket again.",
+          "SERVER IS SLOW — PLEASE TRY THIS TICKET AGAIN",
           "bad"
         );
 
@@ -757,16 +724,12 @@ function checkIn(token){
     Date.now();
 
 
-  script.async = true;
   script.src = url;
 
   document.body.appendChild(script);
 
 }
-
-
-
-
+  
 /* =====================================================
    RESPONSE
 ===================================================== */
