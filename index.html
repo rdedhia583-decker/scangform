@@ -468,57 +468,26 @@ function onScan(decodedText){
 
 function extractToken(value){
 
-  value =
-    String(value || "")
-    .trim();
-
+  value = String(value || "").trim();
   if(!value) return "";
 
-
-  /*
-     QR normally contains:
-
-     https://.../exec?page=ticket&token=XXXXX_T1
-  */
-
-
+  // Full URL QR: ...?token=KYS-GN26-00001
   try{
-
-    if(
-      value.startsWith("http://") ||
-      value.startsWith("https://")
-    ){
-
-      const url =
-        new URL(value);
-
-      const token =
-        url.searchParams.get("token");
-
-      if(token)
-        return token.trim();
-
+    if(value.startsWith("http://") || value.startsWith("https://")){
+      const url = new URL(value);
+      const token = url.searchParams.get("token");
+      if(token) return token.trim();
     }
+  }catch(e){}
 
-  }
+  // Current KYS QR is plain text and contains a Token: line.
+  const match = value.match(/(?:^|\n)\s*Token\s*:\s*([A-Za-z0-9_-]+)/i);
+  if(match && match[1]) return match[1].trim();
 
-  catch(e){
+  // Also support a QR containing only the token.
+  if(/^KYS-GN26-\d+$/i.test(value)) return value;
 
-    console.error(
-      "URL parsing error:",
-      e
-    );
-
-  }
-
-
-  /*
-     Also support direct token:
-
-     XXXXX_T1
-  */
-
-  return value;
+  return "";
 }
 
 
@@ -544,11 +513,30 @@ function checkIn(token){
     );
 
 
+  let finished = false;
+
   const script =
     document.createElement("script");
 
+  // Fail immediately if the browser cannot load the Apps Script response.
+  script.onerror = function(){
 
-  let finished = false;
+    if(finished) return;
+
+    finished = true;
+    cleanup();
+
+    setStatus(
+      "SERVER CONNECTION ERROR — PLEASE SCAN AGAIN",
+      "bad"
+    );
+
+    busy = false;
+
+    document
+      .getElementById("next")
+      .style.display="block";
+  };
 
 
   window[callbackName] =
