@@ -1,883 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-
-<title>Kutch Yuvak Sangh - Pre Navratri Garba Night</title>
-
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-<style>
-*{box-sizing:border-box}
-
-body{
-  margin:0;
-  background:#0b0d11;
-  color:#fff;
-  font-family:Arial,sans-serif;
-}
-
-.wrap{
-  max-width:640px;
-  margin:auto;
-  padding:24px 18px;
-}
-
-.card{
-  background:#151922;
-  border:1px solid #29303d;
-  border-radius:26px;
-  padding:28px 20px;
-  text-align:center;
-}
-
-h1{
-  font-size:34px;
-  margin:0 0 8px;
-}
-
-.sub{
-  font-size:19px;
-  color:#9ba3b4;
-  margin-bottom:30px;
-}
-
-label{
-  display:block;
-  text-align:left;
-  font-size:14px;
-  font-weight:800;
-  color:#aeb6c5;
-  margin:0 0 10px 2px;
-}
-
-input{
-  width:100%;
-  height:64px;
-  border-radius:18px;
-  background:#0c0f15;
-  border:1px solid #343b49;
-  color:#fff;
-  padding:0 22px;
-  font-size:21px;
-  margin-bottom:14px;
-}
-
-button{
-  width:100%;
-  height:64px;
-  border:0;
-  border-radius:18px;
-  background:#252b38;
-  color:#fff;
-  font-size:20px;
-  font-weight:800;
-  margin:7px 0;
-}
-
-#reader{
-  margin-top:20px;
-  border-radius:24px;
-  overflow:hidden;
-  background:#000;
-  min-height:80px;
-}
-
-#status{
-  margin-top:20px;
-  border-radius:22px;
-  padding:25px 16px;
-  min-height:125px;
-  white-space:pre-line;
-  font-size:21px;
-  font-weight:700;
-  background:#171b24;
-}
-
-#status.ok{
-  background:#103a21;
-  border:1px solid #2f8c51;
-  color:#7dff9b;
-}
-
-#status.bad{
-  background:#351417;
-  border:1px solid #7b3138;
-  color:#fff;
-}
-
-#status.wait{
-  background:#3b3310;
-  border:1px solid #806e24;
-  color:#ffe88a;
-}
-
-.small{
-  color:#777f8f;
-  font-size:14px;
-  margin-top:22px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event QR Check-In Scanner</title>
+    <!-- Html5Qrcode Library for Camera Scanning -->
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h2 { color: #333; margin-bottom: 20px; }
+        .config-box {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        #reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #ddd;
+        }
+        /* Status Flash Card Styling */
+        #status-card {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: bold;
+            display: none;
+            transition: all 0.3s ease;
+        }
+        .allowed { background-color: #2ec4b6; color: white; border: 2px solid #0f9f90; }
+        .already-scanned { background-color: #e71d36; color: white; border: 2px solid #b71224; }
+        .not-found { background-color: #ff9f1c; color: white; border: 2px solid #d47a00; }
+        .scanning { background-color: #e0e0e0; color: #666; }
+        
+        #ticket-details {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: normal;
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="wrap">
-<div class="card">
+<div class="container">
+    <h2>🎟️ Event Ticket Scanner</h2>
+    
+    <!-- Apps Script URL Configuration -->
+    <div class="config-box">
+        <label style="font-weight: 600; display:block; margin-bottom:5px;">Google Apps Script Web App URL:</label>
+        <input type="text" id="scriptUrl" placeholder="https://google.com" />
+    </div>
 
-<h1>Kutch Yuvak Sangh</h1>
-<div class="sub">Pre Navratri Garba Night • QR Check-In</div>
+    <!-- Scanner Camera Viewport -->
+    <div id="reader"></div>
 
-<label>VOLUNTEER NAME</label>
-
-<input
-  id="volunteer"
-  placeholder="Volunteer Name"
-  autocomplete="off"
->
-
-<button id="start" onclick="startScanner()">
-START SCANNER
-</button>
-
-<button
-  id="stop"
-  onclick="stopScanner()"
-  style="display:none"
->
-STOP SCANNER
-</button>
-
-<div id="reader"></div>
-
-<div id="status">
-Ready to scan
+    <!-- Flash Result Card -->
+    <div id="status-card">
+        <div id="status-message">Ready to Scan</div>
+        <div id="ticket-details"></div>
+    </div>
 </div>
-
-<button
-  id="next"
-  onclick="resetForNext()"
-  style="display:none"
->
-SCAN NEXT TICKET
-</button>
-
-<div class="small">
-Keep this page open during entry.
-</div>
-
-</div>
-</div>
-
 
 <script>
-
-/* =====================================================
-   CONFIG
-===================================================== */
-
-const API =
-"https://script.google.com/macros/s/AKfycbzZP05yKEeGXzcKlZtbLlEHYGqz5HJMHJoeLvb6vTg2t05eOWyL6q-U9dasTD7WSzztlw/exec";
-
-const KEY =
-"KOLbmD4g1LoiBKe6ooZK7LR_OmyBICce";
-
-
-/* =====================================================
-   STATE
-===================================================== */
-
-let scanner = null;
-let busy = false;
-let lastToken = "";
-let lastAt = 0;
-
-
-/* =====================================================
-   STATUS
-===================================================== */
-
-function setStatus(text, cls=""){
-
-  const el =
-    document.getElementById("status");
-
-  el.className = cls;
-  el.textContent = text;
-}
-
-
-/* =====================================================
-   START SCANNER
-===================================================== */
-
-async function startScanner(){
-
-  if(scanner) return;
-
-  const volunteer =
-    document
-      .getElementById("volunteer")
-      .value
-      .trim();
-
-  if(!volunteer){
-
-    setStatus(
-      "Enter volunteer name first",
-      "bad"
-    );
-
-    return;
-  }
-
-  scanner =
-    new Html5Qrcode("reader");
-
-  setStatus(
-    "Starting camera...",
-    "wait"
-  );
-
-  const config = {
-
-    fps: 15,
-
-    qrbox:{
-      width:300,
-      height:300
-    },
-
-    rememberLastUsedCamera:true
-  };
-
-
-  try{
-
-    await scanner.start(
-
-      {
-        facingMode:"environment"
-      },
-
-      config,
-
-      onScan,
-
-      ()=>{}
-
-    );
-
-
-    document
-      .getElementById("start")
-      .style.display="none";
-
-
-    document
-      .getElementById("stop")
-      .style.display="block";
-
-
-    setStatus(
-      "READY — Scan QR"
-    );
-
-  }
-
-
-  catch(error){
-
-    console.error(error);
-
-    try{
-
-      const cameras =
-        await Html5Qrcode.getCameras();
-
-      if(!cameras.length)
-        throw new Error("No camera");
-
-
-      await scanner.start(
-
-        cameras[0].id,
-
-        config,
-
-        onScan,
-
-        ()=>{}
-
-      );
-
-
-      document
-        .getElementById("start")
-        .style.display="none";
-
-
-      document
-        .getElementById("stop")
-        .style.display="block";
-
-
-      setStatus(
-        "READY — Scan QR"
-      );
-
-    }
-
-
-    catch(e){
-
-      console.error(e);
-
-      scanner = null;
-
-      setStatus(
-        "Camera could not start. Allow camera permission and reload.",
-        "bad"
-      );
-
-    }
-
-  }
-
-}
-
-
-/* =====================================================
-   STOP
-===================================================== */
-
-async function stopScanner(){
-
-  if(scanner){
-
-    try{
-      await scanner.stop();
-    }catch(e){}
-
-    try{
-      scanner.clear();
-    }catch(e){}
-
-  }
-
-  scanner = null;
-  busy = false;
-
-
-  document
-    .getElementById("start")
-    .style.display="block";
-
-
-  document
-    .getElementById("stop")
-    .style.display="none";
-
-
-  setStatus(
-    "Scanner stopped"
-  );
-}
-
-
-/* =====================================================
-   QR SCANNED
-===================================================== */
-
-function onScan(decodedText){
-
-  if(busy) return;
-
-  const raw =
-    String(decodedText || "")
-    .trim();
-
-  if(!raw) return;
-
-  const now = Date.now();
-
-
-  if(
-    raw === lastToken &&
-    now - lastAt < 6000
-  ){
-
-    return;
-
-  }
-
-
-  lastToken = raw;
-  lastAt = now;
-
-
-  const token =
-    extractToken(raw);
-
-
-  if(!token){
-
-    setStatus(
-      "INVALID QR",
-      "bad"
-    );
-
-    return;
-
-  }
-
-
-  busy = true;
-
-
-  /* CAMERA PAUSE IMMEDIATELY AFTER QR DETECTION */
-
-  if(scanner){
-
-    try{
-      scanner.pause(true);
-    }catch(e){}
-
-  }
-
-
-  setStatus(
-    "VERIFYING TICKET...",
-    "wait"
-  );
-
-
-  document
-    .getElementById("next")
-    .style.display="none";
-
-
-  checkIn(token);
-}
-
-
-/* =====================================================
-   EXTRACT TOKEN FROM QR
-===================================================== */
-
-function extractToken(value){
-
-  value = String(value || "").trim();
-  if(!value) return "";
-
-  // Full URL QR: ...?token=KYS-GN26-00001
-  try{
-    if(value.startsWith("http://") || value.startsWith("https://")){
-      const url = new URL(value);
-      const token = url.searchParams.get("token");
-      if(token) return token.trim();
-    }
-  }catch(e){}
-
-  // Current KYS QR is plain text and contains a Token: line.
-  const match = value.match(/(?:^|\n)\s*Token\s*:\s*([A-Za-z0-9_-]+)/i);
-  if(match && match[1]) return match[1].trim();
-
-  // Also support a QR containing only the token.
-  if(/^KYS-GN26-\d+$/i.test(value)) return value;
-
-  return "";
-}
-
-
-/* =====================================================
-   CHECK-IN VIA JSONP
-===================================================== */
-
-function checkIn(token){
-
-  const volunteer =
-    document
-      .getElementById("volunteer")
-      .value
-      .trim();
-
-
-  const callbackName =
-    "kysCheck_" +
-    Date.now() +
-    "_" +
-    Math.floor(
-      Math.random()*100000
-    );
-
-
-  let finished = false;
-
-  const script =
-    document.createElement("script");
-
-  // Fail immediately if the browser cannot load the Apps Script response.
-  script.onerror = function(){
-
-    if(finished) return;
-
-    finished = true;
-    cleanup();
-
-    setStatus(
-      "SERVER CONNECTION ERROR — PLEASE SCAN AGAIN",
-      "bad"
-    );
-
-    busy = false;
-
-    document
-      .getElementById("next")
-      .style.display="block";
-  };
-
-
-  window[callbackName] =
-    function(response){
-
-      if(finished) return;
-
-      finished = true;
-
-      cleanup();
-
-      handleResponse(response);
-
-    };
-
-
-  function cleanup(){
-
-    clearTimeout(timeout);
-
-    try{
-      script.remove();
-    }catch(e){}
-
-    try{
-      delete window[callbackName];
-    }catch(e){}
-
-  }
-
-
-  const timeout =
-    setTimeout(
-
-      function(){
-
-        if(finished) return;
-
-        finished = true;
-
-        cleanup();
-
-
-        setStatus(
-          "SERVER IS SLOW — PLEASE TRY THIS TICKET AGAIN",
-          "bad"
+    let html5QrcodeScanner;
+    let isProcessing = false; // Multi-scanning ko rokne ke liye loop breaker
+
+    function initScanner() {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: { width: 250, height: 250 } }
         );
-
-
-        busy = false;
-
-
-        document
-          .getElementById("next")
-          .style.display="block";
-
-      },
-
-      15000
-
-    );
-
-
-  /*
-     IMPORTANT:
-     API KEY IS REQUIRED.
-  */
-
-
-  const url =
-    API +
-    "?api=checkin_jsonp" +
-    "&callback=" +
-    encodeURIComponent(callbackName) +
-    "&key=" +
-    encodeURIComponent(KEY) +
-    "&token=" +
-    encodeURIComponent(token) +
-    "&volunteer=" +
-    encodeURIComponent(volunteer) +
-    "&_=" +
-    Date.now();
-
-
-  script.src = url;
-
-  document.body.appendChild(script);
-}
-
-
-/* =====================================================
-   RESPONSE
-===================================================== */
-
-function handleResponse(data){
-
-  if(!data){
-
-    setStatus(
-      "SERVER DID NOT RETURN A RESULT",
-      "bad"
-    );
-
-    finishScan();
-
-    return;
-  }
-
-
-  const status =
-    String(data.status || "")
-    .toUpperCase();
-
-
-  /* =================================================
-     SUCCESS — FIRST SCAN
-
-     IMPORTANT:
-     Backend first scan returns:
-
-     ok:true
-     status:"USED"
-     message:"ENTRY ALLOWED"
-
-     Therefore SUCCESS MUST BE CHECKED
-     BEFORE status === "USED".
-  ================================================= */
-
-
-  if(
-    data.ok === true &&
-    String(data.message || "")
-      .toUpperCase()
-      .includes("ENTRY ALLOWED")
-  ){
-
-    setStatus(
-
-      "ENTRY ALLOWED ✓\n\n" +
-
-      (data.name || "") +
-
-      "\nTicket #" +
-
-      data.ticketNumber +
-
-      " of " +
-
-      data.quantity +
-
-      "\nBooking: " +
-
-      data.bookingId +
-
-      "\nChecked in by: " +
-
-      data.checkedInBy,
-
-      "ok"
-
-    );
-
-
-    finishScan();
-
-    return;
-  }
-
-
-  /* =================================================
-     ALREADY USED — SECOND SCAN
-  ================================================= */
-
-
-  if(status === "USED"){
-
-    setStatus(
-
-      "ALREADY CHECKED IN\n" +
-
-      (data.name || "") +
-
-      "\nTicket #" +
-
-      (data.ticketNumber || "") +
-
-      "\nChecked in by: " +
-
-      (data.checkedInBy || "Unknown"),
-
-      "bad"
-
-    );
-
-
-    finishScan();
-
-    return;
-  }
-
-
-  /* =================================================
-     PAYMENT NOT VERIFIED
-  ================================================= */
-
-
-  if(status === "NOT VALID"){
-
-    setStatus(
-
-      "PAYMENT NOT VERIFIED\n\n" +
-
-      (data.message || ""),
-
-      "bad"
-
-    );
-
-
-    finishScan();
-
-    return;
-  }
-
-
-  /* =================================================
-     INVALID
-  ================================================= */
-
-
-  if(status === "INVALID"){
-
-    setStatus(
-
-      "INVALID TICKET\n\n" +
-
-      (data.message || ""),
-
-      "bad"
-
-    );
-
-
-    finishScan();
-
-    return;
-  }
-
-
-  /* =================================================
-     SERVER ERROR
-  ================================================= */
-
-
-  if(status === "ERROR"){
-
-    setStatus(
-
-      data.message ||
-      "SERVER ERROR",
-
-      "bad"
-
-    );
-
-
-    finishScan();
-
-    return;
-  }
-
-
-  /* =================================================
-     UNKNOWN RESPONSE
-  ================================================= */
-
-
-  setStatus(
-
-    data.message ||
-    "TICKET NOT VALID",
-
-    "bad"
-
-  );
-
-
-  finishScan();
-}
-
-
-/* =====================================================
-   FINISH
-===================================================== */
-
-function finishScan(){
-
-  busy = false;
-
-
-  document
-    .getElementById("next")
-    .style.display="block";
-}
-
-
-/* =====================================================
-   NEXT TICKET
-===================================================== */
-
-function resetForNext(){
-
-  busy = false;
-
-  lastToken = "";
-  lastAt = 0;
-
-
-  /*
-     RESUME CAMERA FOR NEXT QR
-  */
-
-  if(scanner){
-
-    try{
-      scanner.resume();
-    }catch(e){}
-
-  }
-
-
-  document
-    .getElementById("next")
-    .style.display="none";
-
-
-  setStatus(
-    "READY — Scan next QR"
-  );
-}
-
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }
+
+    // Jab QR Code successfully scan hoga
+    function onScanSuccess(decodedText, decodedResult) {
+        if (isProcessing) return; // Agar pehle wala ticket abhi verify ho raha h to ruko
+        
+        const webAppUrl = document.getElementById('scriptUrl').value.trim();
+        if (!webAppUrl) {
+            alert("Pehle apna Google Apps Script Web App URL upar box me daalein!");
+            return;
+        }
+
+        isProcessing = true;
+        showStatus('scanning', 'Verifying Ticket...', 'Checking backend database...');
+
+        // Google Apps Script Web App ko request bhejna (CORS handler ke saath)
+        fetch(`${webAppUrl}?qrData=${encodeURIComponent(decodedText)}`)
+            .then(response => response.json())
+            .then(data => {
+                // Flash message conditions
+                if (data.status === "ALLOWED") {
+                    showStatus('allowed', '✅ CHECK-IN ALLOWED', `Ticket ID: ${decodedText}`);
+                } else if (data.status === "ALREADY_SCAN") {
+                    showStatus('already-scanned', '❌ ALREADY CHECKED IN!', `Scanned Again: ${decodedText}`);
+                } else {
+                    showStatus('not-found', '⚠️ INVALID TICKET / NOT FOUND', `Data: ${decodedText}`);
+                }
+                
+                // 3 seconds baad scanner ko agla ticket scan karne ke liye ready karna
+                setTimeout(() => {
+                    isProcessing = false;
+                    resetStatus();
+                }, 3000);
+            })
+            .catch(error => {
+                console.error("Error verifying ticket:", error);
+                showStatus('not-found', '⚠️ NETWORK ERROR', 'Check console or Apps Script deployment permissions.');
+                setTimeout(() => { isProcessing = false; }, 3000);
+            });
+    }
+
+    function onScanFailure(error) {
+        // Har frame fail hone par handle karne ki zarurat nahi hai (Library defaults it)
+    }
+
+    function showStatus(className, message, details) {
+        const card = document.getElementById('status-card');
+        const msgDiv = document.getElementById('status-message');
+        const detailsDiv = document.getElementById('ticket-details');
+        
+        card.className = className;
+        card.style.display = 'block';
+        msgDiv.innerText = message;
+        detailsDiv.innerText = details;
+    }
+
+    function resetStatus() {
+        document.getElementById('status-card').style.display = 'none';
+    }
+
+    // Page load hote hi scanner load karein
+    window.addEventListener('DOMContentLoaded', initScanner);
 </script>
 
 </body>
