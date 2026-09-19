@@ -29,280 +29,908 @@ button{width:100%;height:64px;border:0;border-radius:18px;background:#252b38;col
 <body>
 <div class="wrap">
 <div class="card">
+
 <h1>Kutch Yuvak Sangh</h1>
-<div class="sub">Pre Navratri Garba Night • QR Check-In</div>
+
+<div class="sub">
+Pre Navratri Garba Night • QR Check-In
+</div>
 
 <label>VOLUNTEER NAME</label>
-<input id="volunteer" placeholder="Volunteer Name" autocomplete="off">
 
-<button id="start" onclick="startScanner()">START SCANNER</button>
-<button id="stop" onclick="stopScanner()" style="display:none">STOP SCANNER</button>
+<input
+  id="volunteer"
+  placeholder="Volunteer Name"
+  autocomplete="off"
+>
+
+<button id="start" onclick="startScanner()">
+START SCANNER
+</button>
+
+<button
+  id="stop"
+  onclick="stopScanner()"
+  style="display:none"
+>
+STOP SCANNER
+</button>
 
 <div id="reader"></div>
-<div id="status">Ready to scan</div>
 
-<button id="next" onclick="resetForNext()" style="display:none">SCAN NEXT TICKET</button>
+<div id="status">
+Ready to scan
+</div>
 
-<div class="small">Keep this page open during entry.</div>
+<button
+  id="next"
+  onclick="resetForNext()"
+  style="display:none"
+>
+SCAN NEXT TICKET
+</button>
+
+<div class="small">
+Keep this page open during entry.
+</div>
+
 </div>
 </div>
 
 <script>
-const API="https://script.google.com/macros/s/AKfycbzZP05yKEeGXzcKlZtbLlEHYGqz5HJMHJoeLvb6vTg2t05eOWyL6q-U9dasTD7WSzztlw/exec";
-const KEY="KOLbmD4g1LoiBKe6ooZK7LR_OmyBICce";
 
-let scanner=null;
-let busy=false;
-let lastToken="";
-let lastAt=0;
+/* =========================================================
+   CONFIG
+========================================================= */
 
-function setStatus(text,cls=""){
-  const el=document.getElementById("status");
-  el.className=cls;
-  el.textContent=text;
+const API =
+"https://script.google.com/macros/s/AKfycbzZP05yKEeGXzcKlZtbLlEHYGqz5HJMHJoeLvb6vTg2t05eOWyL6q-U9dasTD7WSzztlw/exec";
+
+const KEY =
+"KOLbmD4g1LoiBKe6ooZK7LR_OmyBICce";
+
+
+/* =========================================================
+   GLOBALS
+========================================================= */
+
+let scanner = null;
+let busy = false;
+
+let lastToken = "";
+let lastAt = 0;
+
+let requestFinished = false;
+let requestScript = null;
+let requestCallback = "";
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+function setStatus(text, cls="") {
+
+  const el = document.getElementById("status");
+
+  el.className = cls;
+  el.textContent = text;
 }
 
-async function startScanner(){
-  if(scanner) return;
 
-  const volunteer=document.getElementById("volunteer").value.trim();
-  if(!volunteer){
-    setStatus("Enter volunteer name first","bad");
+/* =========================================================
+   START SCANNER
+========================================================= */
+
+async function startScanner() {
+
+  if (scanner) return;
+
+  const volunteer =
+    document.getElementById("volunteer").value.trim();
+
+  if (!volunteer) {
+
+    setStatus(
+      "Enter volunteer name first",
+      "bad"
+    );
+
     return;
   }
 
-  scanner=new Html5Qrcode("reader");
-  setStatus("Starting camera...","wait");
+  scanner = new Html5Qrcode("reader");
 
-  const config={
-    fps:10,
-    qrbox:{width:300,height:300},
-    aspectRatio:1.0,
-    rememberLastUsedCamera:true
+  setStatus(
+    "Starting camera...",
+    "wait"
+  );
+
+  const config = {
+
+    fps: 10,
+
+    qrbox: {
+      width: 300,
+      height: 300
+    },
+
+    aspectRatio: 1.0,
+
+    rememberLastUsedCamera: true
   };
 
-  try{
-    await scanner.start({facingMode:{exact:"environment"}},config,onScan,()=>{});
+
+  try {
+
+    await scanner.start(
+
+      {
+        facingMode: {
+          exact: "environment"
+        }
+      },
+
+      config,
+
+      onScan,
+
+      function(){}
+
+    );
+
     scannerStarted();
-  }catch(error){
-    console.error("environment camera failed",error);
 
-    try{
-      const cameras=await Html5Qrcode.getCameras();
-      if(!cameras || !cameras.length) throw new Error("No camera found");
+  }
 
-      let cameraId=cameras[cameras.length-1].id;
-      const back=cameras.find(c=>/back|rear|environment/i.test(c.label||""));
-      if(back) cameraId=back.id;
+  catch(error) {
 
-      await scanner.start(cameraId,config,onScan,()=>{});
+    console.error(
+      "Environment camera failed:",
+      error
+    );
+
+    try {
+
+      const cameras =
+        await Html5Qrcode.getCameras();
+
+      if (
+        !cameras ||
+        cameras.length === 0
+      ) {
+
+        throw new Error(
+          "No camera found"
+        );
+      }
+
+      let cameraId =
+        cameras[cameras.length - 1].id;
+
+      const back =
+        cameras.find(
+          c =>
+            /back|rear|environment/i.test(
+              c.label || ""
+            )
+        );
+
+      if (back) {
+        cameraId = back.id;
+      }
+
+      await scanner.start(
+
+        cameraId,
+
+        config,
+
+        onScan,
+
+        function(){}
+
+      );
+
       scannerStarted();
-    }catch(e){
-      console.error("camera fallback failed",e);
-      scanner=null;
-      setStatus("Camera could not start.\n\nAllow camera permission and reload this page.","bad");
+
+    }
+
+    catch(e) {
+
+      console.error(
+        "Camera fallback failed:",
+        e
+      );
+
+      scanner = null;
+
+      setStatus(
+        "Camera could not start.\n\nAllow camera permission and reload this page.",
+        "bad"
+      );
     }
   }
 }
 
-function scannerStarted(){
-  document.getElementById("start").style.display="none";
-  document.getElementById("stop").style.display="block";
-  setStatus("READY — Scan QR");
+
+/* =========================================================
+   SCANNER STARTED
+========================================================= */
+
+function scannerStarted() {
+
+  document.getElementById(
+    "start"
+  ).style.display = "none";
+
+  document.getElementById(
+    "stop"
+  ).style.display = "block";
+
+  setStatus(
+    "READY — Scan QR"
+  );
 }
 
-async function stopScanner(){
-  if(scanner){
-    try{await scanner.stop();}catch(e){}
-    try{scanner.clear();}catch(e){}
+
+/* =========================================================
+   STOP SCANNER
+========================================================= */
+
+async function stopScanner() {
+
+  if (scanner) {
+
+    try {
+      await scanner.stop();
+    }
+    catch(e) {}
+
+    try {
+      scanner.clear();
+    }
+    catch(e) {}
   }
-  scanner=null;
-  busy=false;
-  document.getElementById("start").style.display="block";
-  document.getElementById("stop").style.display="none";
-  setStatus("Scanner stopped");
+
+  scanner = null;
+
+  busy = false;
+
+  document.getElementById(
+    "start"
+  ).style.display = "block";
+
+  document.getElementById(
+    "stop"
+  ).style.display = "none";
+
+  setStatus(
+    "Scanner stopped"
+  );
 }
 
-function onScan(decodedText){
-  if(busy)return;
 
-  const raw=String(decodedText||"").trim();
-  if(!raw)return;
+/* =========================================================
+   QR SCANNED
+========================================================= */
 
-  const now=Date.now();
-  if(raw===lastToken && now-lastAt<6000)return;
+function onScan(decodedText) {
 
-  lastToken=raw;
-  lastAt=now;
+  if (busy) return;
 
-  const token=extractToken(raw);
+  const raw =
+    String(decodedText || "").trim();
 
-  if(!token){
-    setStatus("INVALID QR\n\nToken not found","bad");
+  if (!raw) return;
+
+
+  const now = Date.now();
+
+
+  /* Prevent same QR from firing repeatedly */
+
+  if (
+    raw === lastToken &&
+    now - lastAt < 6000
+  ) {
+
     return;
   }
 
-  busy=true;
 
-  if(scanner){
-    try{scanner.pause(true);}catch(e){}
+  lastToken = raw;
+  lastAt = now;
+
+
+  const token =
+    extractToken(raw);
+
+
+  if (!token) {
+
+    setStatus(
+      "INVALID QR\n\nToken not found",
+      "bad"
+    );
+
+    return;
   }
 
-  document.getElementById("next").style.display="none";
-  setStatus("VERIFYING TICKET...","wait");
+
+  busy = true;
+
+
+  /* Pause camera while verifying */
+
+  if (scanner) {
+
+    try {
+      scanner.pause(true);
+    }
+    catch(e) {}
+  }
+
+
+  document.getElementById(
+    "next"
+  ).style.display = "none";
+
+
+  setStatus(
+    "VERIFYING TICKET...",
+    "wait"
+  );
+
+
   checkIn(token);
 }
 
-function extractToken(value){
-  value=String(value||"").trim();
-  if(!value)return "";
 
-  /* URL QR: ?token=XXXXX */
-  try{
-    if(/^https?:\/\//i.test(value)){
-      const url=new URL(value);
-      const token=url.searchParams.get("token");
-      if(token)return token.trim();
+/* =========================================================
+   TOKEN EXTRACTION
+========================================================= */
+
+function extractToken(value) {
+
+  value =
+    String(value || "").trim();
+
+  if (!value) return "";
+
+
+  /* -----------------------------------------
+     URL QR
+  ----------------------------------------- */
+
+  try {
+
+    if (
+      /^https?:\/\//i.test(value)
+    ) {
+
+      const url =
+        new URL(value);
+
+      const token =
+        url.searchParams.get("token");
+
+      if (token) {
+
+        return token.trim();
+      }
     }
-  }catch(e){}
 
-  /* Text QR containing "Token: XXXXX" */
-  const match=value.match(/(?:^|\n|\r)\s*Token\s*:\s*([^\s\r\n]+)/i);
-  if(match)return match[1].trim();
+  }
+  catch(e) {}
 
-  /* Also support KYS-GN26-XXXXX directly */
-  const direct=value.match(/\bKYS-GN26-\d+\b/i);
-  if(direct)return direct[0].trim();
+
+  /* -----------------------------------------
+     TEXT QR
+     Token: KYS-GN26-12345
+  ----------------------------------------- */
+
+  const match =
+    value.match(
+      /(?:^|\n|\r)\s*Token\s*:\s*([^\s\r\n]+)/i
+    );
+
+  if (match) {
+
+    return match[1].trim();
+  }
+
+
+  /* -----------------------------------------
+     DIRECT TOKEN
+  ----------------------------------------- */
+
+  const direct =
+    value.match(
+      /\bKYS-GN26-\d+\b/i
+    );
+
+  if (direct) {
+
+    return direct[0].trim();
+  }
+
 
   return value;
 }
 
-function checkIn(token){
-  const volunteer=document.getElementById("volunteer").value.trim();
 
-  const callbackName="kysCheck_"+Date.now()+"_"+Math.floor(Math.random()*100000);
-  const script=document.createElement("script");
-  let finished=false;
+/* =========================================================
+   CHECK-IN
+========================================================= */
 
-  window[callbackName]=function(response){
-    if(finished)return;
-    finished=true;
-    cleanup();
-    handleResponse(response);
-  };
+function checkIn(token) {
 
-  function cleanup(){
-    clearTimeout(timeout);
-    try{script.remove();}catch(e){}
-    try{delete window[callbackName];}catch(e){}
-  }
+  const volunteer =
+    document.getElementById(
+      "volunteer"
+    ).value.trim();
 
-  const timeout=setTimeout(function(){
-    if(finished)return;
-    finished=true;
-    cleanup();
-    setStatus("SERVER TIMEOUT\n\nNo response received from Apps Script.\n\nCheck deployment/access and try again.","bad");
-    busy=false;
-    if(scanner){try{scanner.resume();}catch(e){}}
-    document.getElementById("next").style.display="block";
-  },20000);
 
-  const url=API+
-    "?api=checkin_jsonp"+
-    "&callback="+encodeURIComponent(callbackName)+
-    "&key="+encodeURIComponent(KEY)+
-    "&token="+encodeURIComponent(token)+
-    "&volunteer="+encodeURIComponent(volunteer)+
-    "&_="+Date.now();
+  if (!volunteer) {
 
-  script.onerror=function(){
-    if(finished)return;
-    finished=true;
-    cleanup();
-    setStatus("CONNECTION ERROR\n\nApps Script did not return a response.","bad");
-    busy=false;
-    if(scanner){try{scanner.resume();}catch(e){}}
-    document.getElementById("next").style.display="block";
-  };
-
-  script.src=url;
-  document.body.appendChild(script);
-}
-
-function handleResponse(data){
-  if(!data){
-    setStatus("SERVER DID NOT RETURN A RESULT","bad");
-    finishScan();
-    return;
-  }
-
-  const status=String(data.status||"").toUpperCase();
-  const message=String(data.message||"").toUpperCase();
-
-  if(data.ok===true && message.includes("ENTRY ALLOWED")){
     setStatus(
-      "ENTRY ALLOWED ✓\n\n"+
-      (data.name||"")+
-      "\nTicket #"+(data.ticketNumber||"")+" of "+(data.quantity||"")+
-      "\nBooking: "+(data.bookingId||"")+
-      "\nChecked in by: "+(data.checkedInBy||""),
-      "ok"
-    );
-    finishScan();
-    return;
-  }
-
-  if(status==="USED"){
-    setStatus(
-      "ALREADY CHECKED IN\n\n"+
-      (data.name||"")+
-      "\nTicket #"+(data.ticketNumber||"")+
-      "\nChecked in by: "+(data.checkedInBy||"Unknown"),
+      "Enter volunteer name first",
       "bad"
     );
-    finishScan();
+
+    busy = false;
+
+    if (scanner) {
+
+      try {
+        scanner.resume();
+      }
+      catch(e) {}
+    }
+
     return;
   }
 
-  if(status==="NOT VALID"){
-    setStatus("PAYMENT NOT VERIFIED\n\n"+(data.message||""),"bad");
+
+  /*
+     Remove any previous request callback
+  */
+
+  cleanupRequest();
+
+
+  requestFinished = false;
+
+
+  /*
+     Unique JSONP callback
+  */
+
+  const callbackName =
+    "kysCheck_" +
+    Date.now() +
+    "_" +
+    Math.floor(
+      Math.random() * 1000000
+    );
+
+
+  requestCallback =
+    callbackName;
+
+
+  /*
+     Create JSONP callback
+  */
+
+  window[callbackName] =
+    function(response) {
+
+      if (requestFinished) {
+        return;
+      }
+
+      requestFinished = true;
+
+      cleanupRequest();
+
+      handleResponse(response);
+    };
+
+
+  /*
+     Build request URL
+  */
+
+  const url =
+    API +
+    "?api=checkin_jsonp" +
+    "&callback=" +
+    encodeURIComponent(callbackName) +
+    "&key=" +
+    encodeURIComponent(KEY) +
+    "&token=" +
+    encodeURIComponent(token) +
+    "&volunteer=" +
+    encodeURIComponent(volunteer) +
+    "&_=" +
+    Date.now();
+
+
+  console.log(
+    "CHECK-IN REQUEST:",
+    url
+  );
+
+
+  /*
+     JSONP script
+  */
+
+  const script =
+    document.createElement("script");
+
+
+  requestScript = script;
+
+
+  /*
+     IMPORTANT:
+     Do not treat normal script loading
+     as an error before the callback.
+  */
+
+  script.onerror =
+    function() {
+
+      if (requestFinished) {
+        return;
+      }
+
+      requestFinished = true;
+
+      cleanupRequest();
+
+      setStatus(
+        "CONNECTION ERROR\n\nApps Script did not return the check-in response.",
+        "bad"
+      );
+
+      busy = false;
+
+      if (scanner) {
+
+        try {
+          scanner.resume();
+        }
+        catch(e) {}
+      }
+
+      document.getElementById(
+        "next"
+      ).style.display = "block";
+    };
+
+
+  /*
+     Send request
+  */
+
+  script.src = url;
+
+  document.body.appendChild(script);
+
+
+  /*
+     Timeout
+  */
+
+  window.setTimeout(
+    function() {
+
+      if (requestFinished) {
+        return;
+      }
+
+      requestFinished = true;
+
+      cleanupRequest();
+
+      setStatus(
+        "SERVER TIMEOUT\n\nNo response received from Apps Script.",
+        "bad"
+      );
+
+      busy = false;
+
+      if (scanner) {
+
+        try {
+          scanner.resume();
+        }
+        catch(e) {}
+      }
+
+      document.getElementById(
+        "next"
+      ).style.display = "block";
+
+    },
+    15000
+  );
+}
+
+
+/* =========================================================
+   CLEANUP JSONP
+========================================================= */
+
+function cleanupRequest() {
+
+  if (requestScript) {
+
+    try {
+      requestScript.remove();
+    }
+    catch(e) {}
+
+    requestScript = null;
+  }
+
+
+  if (requestCallback) {
+
+    try {
+      delete window[
+        requestCallback
+      ];
+    }
+
+    catch(e) {}
+
+    requestCallback = "";
+  }
+}
+
+
+/* =========================================================
+   RESPONSE HANDLER
+========================================================= */
+
+function handleResponse(data) {
+
+  console.log(
+    "CHECK-IN RESPONSE:",
+    data
+  );
+
+
+  if (!data) {
+
+    setStatus(
+      "SERVER DID NOT RETURN A RESULT",
+      "bad"
+    );
+
     finishScan();
+
     return;
   }
 
-  if(status==="INVALID"){
-    setStatus("INVALID TICKET\n\n"+(data.message||""),"bad");
+
+  const status =
+    String(
+      data.status || ""
+    ).toUpperCase();
+
+
+  const message =
+    String(
+      data.message || ""
+    ).toUpperCase();
+
+
+  /* =========================================
+     ENTRY ALLOWED
+     FIRST PRIORITY
+  ========================================= */
+
+  if (
+    data.ok === true &&
+    message.includes(
+      "ENTRY ALLOWED"
+    )
+  ) {
+
+    setStatus(
+
+      "ENTRY ALLOWED ✓\n\n" +
+
+      (data.name || "") +
+
+      "\nTicket #" +
+      (data.ticketNumber || "") +
+
+      " of " +
+      (data.quantity || "") +
+
+      "\nBooking: " +
+      (data.bookingId || "") +
+
+      "\nChecked in by: " +
+      (data.checkedInBy || ""),
+
+      "ok"
+    );
+
+
     finishScan();
+
     return;
   }
 
-  if(status==="ERROR"){
-    setStatus("SERVER ERROR\n\n"+(data.message||"Unknown error"),"bad");
+
+  /* =========================================
+     ALREADY USED
+  ========================================= */
+
+  if (status === "USED") {
+
+    setStatus(
+
+      "ALREADY CHECKED IN\n\n" +
+
+      (data.name || "") +
+
+      "\nTicket #" +
+      (data.ticketNumber || "") +
+
+      "\nChecked in by: " +
+      (data.checkedInBy || "Unknown"),
+
+      "bad"
+    );
+
+
     finishScan();
+
     return;
   }
 
-  setStatus(data.message||"TICKET NOT VALID","bad");
+
+  /* =========================================
+     PAYMENT NOT VERIFIED
+  ========================================= */
+
+  if (
+    status === "NOT VALID"
+  ) {
+
+    setStatus(
+
+      "PAYMENT NOT VERIFIED\n\n" +
+      (data.message || ""),
+
+      "bad"
+    );
+
+
+    finishScan();
+
+    return;
+  }
+
+
+  /* =========================================
+     INVALID TICKET
+  ========================================= */
+
+  if (
+    status === "INVALID"
+  ) {
+
+    setStatus(
+
+      "INVALID TICKET\n\n" +
+      (data.message || ""),
+
+      "bad"
+    );
+
+
+    finishScan();
+
+    return;
+  }
+
+
+  /* =========================================
+     SERVER ERROR
+  ========================================= */
+
+  if (
+    status === "ERROR"
+  ) {
+
+    setStatus(
+
+      "SERVER ERROR\n\n" +
+      (data.message || "Unknown error"),
+
+      "bad"
+    );
+
+
+    finishScan();
+
+    return;
+  }
+
+
+  /* =========================================
+     UNKNOWN RESPONSE
+  ========================================= */
+
+  setStatus(
+
+    data.message ||
+    "TICKET NOT VALID",
+
+    "bad"
+  );
+
+
   finishScan();
 }
 
-function finishScan(){
-  busy=false;
-  document.getElementById("next").style.display="block";
+
+/* =========================================================
+   FINISH SCAN
+========================================================= */
+
+function finishScan() {
+
+  busy = false;
+
+  document.getElementById(
+    "next"
+  ).style.display = "block";
 }
 
-function resetForNext(){
-  busy=false;
-  lastToken="";
-  lastAt=0;
 
-  if(scanner){
-    try{scanner.resume();}catch(e){}
+/* =========================================================
+   SCAN NEXT
+========================================================= */
+
+function resetForNext() {
+
+  busy = false;
+
+  lastToken = "";
+  lastAt = 0;
+
+
+  if (scanner) {
+
+    try {
+      scanner.resume();
+    }
+    catch(e) {}
   }
 
-  document.getElementById("next").style.display="none";
-  setStatus("READY — Scan next QR");
+
+  document.getElementById(
+    "next"
+  ).style.display = "none";
+
+
+  setStatus(
+    "READY — Scan next QR"
+  );
 }
+
 </script>
+
 </body>
 </html>
