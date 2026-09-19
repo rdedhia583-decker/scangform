@@ -3,912 +3,306 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-
 <title>Kutch Yuvak Sangh - Pre Navratri Garba Night</title>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <style>
 *{box-sizing:border-box}
-
-body{
-  margin:0;
-  background:#0b0d11;
-  color:#fff;
-  font-family:Arial,sans-serif;
-}
-
-.wrap{
-  max-width:640px;
-  margin:auto;
-  padding:24px 18px;
-}
-
-.card{
-  background:#151922;
-  border:1px solid #29303d;
-  border-radius:26px;
-  padding:28px 20px;
-  text-align:center;
-}
-
-h1{
-  font-size:34px;
-  margin:0 0 8px;
-}
-
-.sub{
-  font-size:19px;
-  color:#9ba3b4;
-  margin-bottom:30px;
-}
-
-label{
-  display:block;
-  text-align:left;
-  font-size:14px;
-  font-weight:800;
-  color:#aeb6c5;
-  margin:0 0 10px 2px;
-}
-
-input{
-  width:100%;
-  height:64px;
-  border-radius:18px;
-  background:#0c0f15;
-  border:1px solid #343b49;
-  color:#fff;
-  padding:0 22px;
-  font-size:21px;
-  margin-bottom:14px;
-}
-
-button{
-  width:100%;
-  height:64px;
-  border:0;
-  border-radius:18px;
-  background:#252b38;
-  color:#fff;
-  font-size:20px;
-  font-weight:800;
-  margin:7px 0;
-}
-
-#reader{
-  margin-top:20px;
-  border-radius:24px;
-  overflow:hidden;
-  background:#000;
-  min-height:80px;
-}
-
-#status{
-  margin-top:20px;
-  border-radius:22px;
-  padding:25px 16px;
-  min-height:125px;
-  white-space:pre-line;
-  font-size:21px;
-  font-weight:700;
-  background:#171b24;
-}
-
-#status.ok{
-  background:#103a21;
-  border:1px solid #2f8c51;
-  color:#7dff9b;
-}
-
-#status.bad{
-  background:#351417;
-  border:1px solid #7b3138;
-  color:#fff;
-}
-
-#status.wait{
-  background:#3b3310;
-  border:1px solid #806e24;
-  color:#ffe88a;
-}
-
-.small{
-  color:#777f8f;
-  font-size:14px;
-  margin-top:22px;
-}
+body{margin:0;background:#0b0d11;color:#fff;font-family:Arial,sans-serif}
+.wrap{max-width:640px;margin:auto;padding:24px 18px}
+.card{background:#151922;border:1px solid #29303d;border-radius:26px;padding:28px 20px;text-align:center}
+h1{font-size:34px;margin:0 0 8px}
+.sub{font-size:19px;color:#9ba3b4;margin-bottom:30px}
+label{display:block;text-align:left;font-size:14px;font-weight:800;color:#aeb6c5;margin:0 0 10px 2px}
+input{width:100%;height:64px;border-radius:18px;background:#0c0f15;border:1px solid #343b49;color:#fff;padding:0 22px;font-size:21px;margin-bottom:14px}
+button{width:100%;height:64px;border:0;border-radius:18px;background:#252b38;color:#fff;font-size:20px;font-weight:800;margin:7px 0}
+#reader{margin-top:20px;border-radius:24px;overflow:hidden;background:#000;min-height:80px}
+#status{margin-top:20px;border-radius:22px;padding:25px 16px;min-height:125px;white-space:pre-line;font-size:21px;font-weight:700;background:#171b24}
+#status.ok{background:#103a21;border:1px solid #2f8c51;color:#7dff9b}
+#status.bad{background:#351417;border:1px solid #7b3138;color:#fff}
+#status.wait{background:#3b3310;border:1px solid #806e24;color:#ffe88a}
+.small{color:#777f8f;font-size:14px;margin-top:22px}
 </style>
 </head>
 
 <body>
-
 <div class="wrap">
 <div class="card">
-
 <h1>Kutch Yuvak Sangh</h1>
 <div class="sub">Pre Navratri Garba Night • QR Check-In</div>
 
 <label>VOLUNTEER NAME</label>
+<input id="volunteer" placeholder="Volunteer Name" autocomplete="off">
 
-<input
-  id="volunteer"
-  placeholder="Volunteer Name"
-  autocomplete="off"
->
-
-<button id="start" onclick="startScanner()">
-START SCANNER
-</button>
-
-<button
-  id="stop"
-  onclick="stopScanner()"
-  style="display:none"
->
-STOP SCANNER
-</button>
+<button id="start" onclick="startScanner()">START SCANNER</button>
+<button id="stop" onclick="stopScanner()" style="display:none">STOP SCANNER</button>
 
 <div id="reader"></div>
+<div id="status">Ready to scan</div>
 
-<div id="status">
-Ready to scan
-</div>
+<button id="next" onclick="resetForNext()" style="display:none">SCAN NEXT TICKET</button>
 
-<button
-  id="next"
-  onclick="resetForNext()"
-  style="display:none"
->
-SCAN NEXT TICKET
-</button>
-
-<div class="small">
-Keep this page open during entry.
-</div>
-
+<div class="small">Keep this page open during entry.</div>
 </div>
 </div>
-
 
 <script>
+const API="https://script.google.com/macros/s/AKfycbxnpitwYlmglJu2Kr_n6VJCI-0mOoxm6t6HS42ziA2WHpeNh1jZZ92sj9lhK-_z5DHFpQ/exec";
+const KEY="KOLbmD4g1LoiBKe6ooZK7LR_OmyBICce";
 
-/* =====================================================
-   CONFIG
-===================================================== */
+let scanner=null;
+let busy=false;
+let lastToken="";
+let lastAt=0;
 
-const API =
-"https://script.google.com/macros/s/AKfycbxnpitwYlmglJu2Kr_n6VJCI-0mOoxm6t6HS42ziA2WHpeNh1jZZ92sj9lhK-_z5DHFpQ/exec";
-
-const KEY =
-"KOLbmD4g1LoiBKe6ooZK7LR_OmyBICce";
-
-
-/* =====================================================
-   STATE
-===================================================== */
-
-let scanner = null;
-let busy = false;
-let lastToken = "";
-let lastAt = 0;
-
-
-/* =====================================================
-   STATUS
-===================================================== */
-
-function setStatus(text, cls=""){
-
-  const el =
-    document.getElementById("status");
-
-  el.className = cls;
-  el.textContent = text;
+function setStatus(text,cls=""){
+  const el=document.getElementById("status");
+  el.className=cls;
+  el.textContent=text;
 }
 
-
-/* =====================================================
-   START SCANNER
-===================================================== */
-
 async function startScanner(){
-
   if(scanner) return;
 
-  const volunteer =
-    document
-      .getElementById("volunteer")
-      .value
-      .trim();
-
+  const volunteer=document.getElementById("volunteer").value.trim();
   if(!volunteer){
-
-    setStatus(
-      "Enter volunteer name first",
-      "bad"
-    );
-
+    setStatus("Enter volunteer name first","bad");
     return;
   }
 
-  scanner =
-    new Html5Qrcode("reader");
+  scanner=new Html5Qrcode("reader");
+  setStatus("Starting camera...","wait");
 
-  setStatus(
-    "Starting camera...",
-    "wait"
-  );
-
-  const config = {
-
-    fps: 15,
-
-    qrbox:{
-      width:300,
-      height:300
-    },
-
+  const config={
+    fps:10,
+    qrbox:{width:300,height:300},
+    aspectRatio:1.0,
     rememberLastUsedCamera:true
   };
 
-
   try{
-
-    await scanner.start(
-
-      {
-        facingMode:"environment"
-      },
-
-      config,
-
-      onScan,
-
-      ()=>{}
-
-    );
-
-
-    document
-      .getElementById("start")
-      .style.display="none";
-
-
-    document
-      .getElementById("stop")
-      .style.display="block";
-
-
-    setStatus(
-      "READY — Scan QR"
-    );
-
-  }
-
-
-  catch(error){
-
-    console.error(error);
+    await scanner.start({facingMode:{exact:"environment"}},config,onScan,()=>{});
+    scannerStarted();
+  }catch(error){
+    console.error("environment camera failed",error);
 
     try{
+      const cameras=await Html5Qrcode.getCameras();
+      if(!cameras || !cameras.length) throw new Error("No camera found");
 
-      const cameras =
-        await Html5Qrcode.getCameras();
+      let cameraId=cameras[cameras.length-1].id;
+      const back=cameras.find(c=>/back|rear|environment/i.test(c.label||""));
+      if(back) cameraId=back.id;
 
-      if(!cameras.length)
-        throw new Error("No camera");
-
-
-      await scanner.start(
-
-        cameras[0].id,
-
-        config,
-
-        onScan,
-
-        ()=>{}
-
-      );
-
-
-      document
-        .getElementById("start")
-        .style.display="none";
-
-
-      document
-        .getElementById("stop")
-        .style.display="block";
-
-
-      setStatus(
-        "READY — Scan QR"
-      );
-
+      await scanner.start(cameraId,config,onScan,()=>{});
+      scannerStarted();
+    }catch(e){
+      console.error("camera fallback failed",e);
+      scanner=null;
+      setStatus("Camera could not start.\n\nAllow camera permission and reload this page.","bad");
     }
-
-
-    catch(e){
-
-      console.error(e);
-
-      scanner = null;
-
-      setStatus(
-        "Camera could not start. Allow camera permission and reload.",
-        "bad"
-      );
-
-    }
-
   }
-
 }
 
-
-/* =====================================================
-   STOP
-===================================================== */
+function scannerStarted(){
+  document.getElementById("start").style.display="none";
+  document.getElementById("stop").style.display="block";
+  setStatus("READY — Scan QR");
+}
 
 async function stopScanner(){
-
   if(scanner){
-
-    try{
-      await scanner.stop();
-    }catch(e){}
-
-    try{
-      scanner.clear();
-    }catch(e){}
-
+    try{await scanner.stop();}catch(e){}
+    try{scanner.clear();}catch(e){}
   }
-
-  scanner = null;
-  busy = false;
-
-
-  document
-    .getElementById("start")
-    .style.display="block";
-
-
-  document
-    .getElementById("stop")
-    .style.display="none";
-
-
-  setStatus(
-    "Scanner stopped"
-  );
+  scanner=null;
+  busy=false;
+  document.getElementById("start").style.display="block";
+  document.getElementById("stop").style.display="none";
+  setStatus("Scanner stopped");
 }
 
-
-/* =====================================================
-   QR SCANNED
-===================================================== */
-
 function onScan(decodedText){
+  if(busy)return;
 
-  if(busy) return;
+  const raw=String(decodedText||"").trim();
+  if(!raw)return;
 
-  const raw =
-    String(decodedText || "")
-    .trim();
+  const now=Date.now();
+  if(raw===lastToken && now-lastAt<6000)return;
 
-  if(!raw) return;
+  lastToken=raw;
+  lastAt=now;
 
-  const now = Date.now();
-
-
-  if(
-    raw === lastToken &&
-    now - lastAt < 6000
-  ){
-
-    return;
-
-  }
-
-
-  lastToken = raw;
-  lastAt = now;
-
-
-  const token =
-    extractToken(raw);
-
+  const token=extractToken(raw);
 
   if(!token){
-
-    setStatus(
-      "INVALID QR",
-      "bad"
-    );
-
+    setStatus("INVALID QR\n\nToken not found","bad");
     return;
-
   }
 
-
-  busy = true;
-
-
-  /* CAMERA PAUSE IMMEDIATELY AFTER QR DETECTION */
+  busy=true;
 
   if(scanner){
-
-    try{
-      scanner.pause(true);
-    }catch(e){}
-
+    try{scanner.pause(true);}catch(e){}
   }
 
-
-  setStatus(
-    "VERIFYING TICKET...",
-    "wait"
-  );
-
-
-  document
-    .getElementById("next")
-    .style.display="none";
-
-
+  document.getElementById("next").style.display="none";
+  setStatus("VERIFYING TICKET...","wait");
   checkIn(token);
 }
 
-
-/* =====================================================
-   EXTRACT TOKEN FROM QR
-===================================================== */
-
 function extractToken(value){
+  value=String(value||"").trim();
+  if(!value)return "";
 
-  value =
-    String(value || "")
-    .trim();
-
-  if(!value) return "";
-
-
-  /*
-     QR normally contains:
-
-     https://.../exec?page=ticket&token=XXXXX_T1
-  */
-
-
+  /* URL QR: ?token=XXXXX */
   try{
-
-    if(
-      value.startsWith("http://") ||
-      value.startsWith("https://")
-    ){
-
-      const url =
-        new URL(value);
-
-      const token =
-        url.searchParams.get("token");
-
-      if(token)
-        return token.trim();
-
+    if(/^https?:\/\//i.test(value)){
+      const url=new URL(value);
+      const token=url.searchParams.get("token");
+      if(token)return token.trim();
     }
+  }catch(e){}
 
-  }
+  /* Text QR containing "Token: XXXXX" */
+  const match=value.match(/(?:^|\n|\r)\s*Token\s*:\s*([^\s\r\n]+)/i);
+  if(match)return match[1].trim();
 
-  catch(e){
-
-    console.error(
-      "URL parsing error:",
-      e
-    );
-
-  }
-
-
-  /*
-     QR generated by the ticket system contains:
-     KYS GARBA NIGHT 2026
-     Token: KYS-GN26-00001
-     Name: ...
-     Mobile: ...
-     Ticket: 1/1
-
-     Extract ONLY the token so the backend can find
-     the exact ticket in column A.
-  */
-
-  const tokenMatch =
-    value.match(/(?:^|\\n)\\s*Token\\s*:\\s*([^\\r\\n]+)/i);
-
-  if(tokenMatch && tokenMatch[1]){
-    return tokenMatch[1].trim();
-  }
-
-  /*
-     Also support direct token:
-     KYS-GN26-00001
-  */
+  /* Also support KYS-GN26-XXXXX directly */
+  const direct=value.match(/\bKYS-GN26-\d+\b/i);
+  if(direct)return direct[0].trim();
 
   return value;
 }
 
-
-/* =====================================================
-   CHECK-IN VIA JSONP
-===================================================== */
-
 function checkIn(token){
+  const volunteer=document.getElementById("volunteer").value.trim();
 
-  const volunteer =
-    document
-      .getElementById("volunteer")
-      .value
-      .trim();
+  const callbackName="kysCheck_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+  const script=document.createElement("script");
+  let finished=false;
 
-
-  const callbackName =
-    "kysCheck_" +
-    Date.now() +
-    "_" +
-    Math.floor(
-      Math.random()*100000
-    );
-
-
-  const script =
-    document.createElement("script");
-
-
-  let finished = false;
-
-
-  window[callbackName] =
-    function(response){
-
-      if(finished) return;
-
-      finished = true;
-
-      cleanup();
-
-      handleResponse(response);
-
-    };
-
+  window[callbackName]=function(response){
+    if(finished)return;
+    finished=true;
+    cleanup();
+    handleResponse(response);
+  };
 
   function cleanup(){
-
     clearTimeout(timeout);
-
-    try{
-      script.remove();
-    }catch(e){}
-
-    try{
-      delete window[callbackName];
-    }catch(e){}
-
+    try{script.remove();}catch(e){}
+    try{delete window[callbackName];}catch(e){}
   }
 
+  const timeout=setTimeout(function(){
+    if(finished)return;
+    finished=true;
+    cleanup();
+    setStatus("SERVER TIMEOUT\n\nNo response received from Apps Script.\n\nCheck deployment/access and try again.","bad");
+    busy=false;
+    if(scanner){try{scanner.resume();}catch(e){}}
+    document.getElementById("next").style.display="block";
+  },20000);
 
-  const timeout =
-    setTimeout(
+  const url=API+
+    "?api=checkin_jsonp"+
+    "&callback="+encodeURIComponent(callbackName)+
+    "&key="+encodeURIComponent(KEY)+
+    "&token="+encodeURIComponent(token)+
+    "&volunteer="+encodeURIComponent(volunteer)+
+    "&_="+Date.now();
 
-      function(){
+  script.onerror=function(){
+    if(finished)return;
+    finished=true;
+    cleanup();
+    setStatus("CONNECTION ERROR\n\nApps Script did not return a response.","bad");
+    busy=false;
+    if(scanner){try{scanner.resume();}catch(e){}}
+    document.getElementById("next").style.display="block";
+  };
 
-        if(finished) return;
-
-        finished = true;
-
-        cleanup();
-
-
-        setStatus(
-          "SERVER IS SLOW — PLEASE TRY THIS TICKET AGAIN",
-          "bad"
-        );
-
-
-        busy = false;
-
-
-        document
-          .getElementById("next")
-          .style.display="block";
-
-      },
-
-      15000
-
-    );
-
-
-  /*
-     IMPORTANT:
-     API KEY IS REQUIRED.
-  */
-
-
-  const url =
-    API +
-    "?api=checkin_jsonp" +
-    "&callback=" +
-    encodeURIComponent(callbackName) +
-    "&key=" +
-    encodeURIComponent(KEY) +
-    "&token=" +
-    encodeURIComponent(token) +
-    "&volunteer=" +
-    encodeURIComponent(volunteer) +
-    "&_=" +
-    Date.now();
-
-
-  script.src = url;
-
+  script.src=url;
   document.body.appendChild(script);
 }
 
-
-/* =====================================================
-   RESPONSE
-===================================================== */
-
 function handleResponse(data){
-
   if(!data){
-
-    setStatus(
-      "SERVER DID NOT RETURN A RESULT",
-      "bad"
-    );
-
+    setStatus("SERVER DID NOT RETURN A RESULT","bad");
     finishScan();
-
     return;
   }
 
+  const status=String(data.status||"").toUpperCase();
+  const message=String(data.message||"").toUpperCase();
 
-  const status =
-    String(data.status || "")
-    .toUpperCase();
-
-
-  /* =================================================
-     SUCCESS — FIRST SCAN
-
-     IMPORTANT:
-     Backend first scan returns:
-
-     ok:true
-     status:"USED"
-     message:"ENTRY ALLOWED"
-
-     Therefore SUCCESS MUST BE CHECKED
-     BEFORE status === "USED".
-  ================================================= */
-
-
-  if(
-    data.ok === true &&
-    String(data.message || "")
-      .toUpperCase()
-      .includes("ENTRY ALLOWED")
-  ){
-
+  if(data.ok===true && message.includes("ENTRY ALLOWED")){
     setStatus(
-
-      "ENTRY ALLOWED ✓\n\n" +
-
-      (data.name || "") +
-
-      "\nTicket #" +
-
-      data.ticketNumber +
-
-      " of " +
-
-      data.quantity +
-
-      "\nBooking: " +
-
-      data.bookingId +
-
-      "\nChecked in by: " +
-
-      data.checkedInBy,
-
+      "ENTRY ALLOWED ✓\n\n"+
+      (data.name||"")+
+      "\nTicket #"+(data.ticketNumber||"")+" of "+(data.quantity||"")+
+      "\nBooking: "+(data.bookingId||"")+
+      "\nChecked in by: "+(data.checkedInBy||""),
       "ok"
-
     );
-
-
     finishScan();
-
     return;
   }
 
-
-  /* =================================================
-     ALREADY USED — SECOND SCAN
-  ================================================= */
-
-
-  if(status === "USED"){
-
+  if(status==="USED"){
     setStatus(
-
-      "ALREADY CHECKED IN\n" +
-
-      (data.name || "") +
-
-      "\nTicket #" +
-
-      (data.ticketNumber || "") +
-
-      "\nChecked in by: " +
-
-      (data.checkedInBy || "Unknown"),
-
+      "ALREADY CHECKED IN\n\n"+
+      (data.name||"")+
+      "\nTicket #"+(data.ticketNumber||"")+
+      "\nChecked in by: "+(data.checkedInBy||"Unknown"),
       "bad"
-
     );
-
-
     finishScan();
-
     return;
   }
 
-
-  /* =================================================
-     PAYMENT NOT VERIFIED
-  ================================================= */
-
-
-  if(status === "NOT VALID"){
-
-    setStatus(
-
-      "PAYMENT NOT VERIFIED\n\n" +
-
-      (data.message || ""),
-
-      "bad"
-
-    );
-
-
+  if(status==="NOT VALID"){
+    setStatus("PAYMENT NOT VERIFIED\n\n"+(data.message||""),"bad");
     finishScan();
-
     return;
   }
 
-
-  /* =================================================
-     INVALID
-  ================================================= */
-
-
-  if(status === "INVALID"){
-
-    setStatus(
-
-      "INVALID TICKET\n\n" +
-
-      (data.message || ""),
-
-      "bad"
-
-    );
-
-
+  if(status==="INVALID"){
+    setStatus("INVALID TICKET\n\n"+(data.message||""),"bad");
     finishScan();
-
     return;
   }
 
-
-  /* =================================================
-     SERVER ERROR
-  ================================================= */
-
-
-  if(status === "ERROR"){
-
-    setStatus(
-
-      data.message ||
-      "SERVER ERROR",
-
-      "bad"
-
-    );
-
-
+  if(status==="ERROR"){
+    setStatus("SERVER ERROR\n\n"+(data.message||"Unknown error"),"bad");
     finishScan();
-
     return;
   }
 
-
-  /* =================================================
-     UNKNOWN RESPONSE
-  ================================================= */
-
-
-  setStatus(
-
-    data.message ||
-    "TICKET NOT VALID",
-
-    "bad"
-
-  );
-
-
+  setStatus(data.message||"TICKET NOT VALID","bad");
   finishScan();
 }
 
-
-/* =====================================================
-   FINISH
-===================================================== */
-
 function finishScan(){
-
-  busy = false;
-
-
-  document
-    .getElementById("next")
-    .style.display="block";
+  busy=false;
+  document.getElementById("next").style.display="block";
 }
-
-
-/* =====================================================
-   NEXT TICKET
-===================================================== */
 
 function resetForNext(){
-
-  busy = false;
-
-  lastToken = "";
-  lastAt = 0;
-
-
-  /*
-     RESUME CAMERA FOR NEXT QR
-  */
+  busy=false;
+  lastToken="";
+  lastAt=0;
 
   if(scanner){
-
-    try{
-      scanner.resume();
-    }catch(e){}
-
+    try{scanner.resume();}catch(e){}
   }
 
-
-  document
-    .getElementById("next")
-    .style.display="none";
-
-
-  setStatus(
-    "READY — Scan next QR"
-  );
+  document.getElementById("next").style.display="none";
+  setStatus("READY — Scan next QR");
 }
-
 </script>
-
 </body>
 </html>
